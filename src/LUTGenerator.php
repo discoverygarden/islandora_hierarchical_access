@@ -5,6 +5,7 @@ namespace Drupal\access_control_model;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldConfigInterface;
+use Drupal\islandora\IslandoraUtils;
 
 class LUTGenerator implements LUTGeneratorInterface {
 
@@ -71,7 +72,8 @@ class LUTGenerator implements LUTGeneratorInterface {
    */
   public function generate(int $mid = NULL) : void {
     $query = $this->database->select('node', 'n');
-    $fmo_alias = $query->join('field_media_of', 'fmo', '%alias.field_media_of_target_id = n.nid');
+    $fmo = IslandoraUtils::MEDIA_OF_FIELD;
+    $fmo_alias = $query->join($fmo, 'fmo', "%alias.{$fmo}_target_id = n.nid");
     $media_alias = $query->join('media', 'm', "%alias.mid = {$fmo_alias}.entity_id");
 
     if ($mid) {

@@ -1,4 +1,7 @@
 {
-  "name": "discoverygarden/access_control_model",
-  "type": "drupal-module"
+    "name": "discoverygarden/access_control_model",
+    "type": "drupal-module",
+    "require": {
+        "islandora/islandora": "^2"
+    }
 }
