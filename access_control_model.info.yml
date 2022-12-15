@@ -6,3 +6,4 @@ dependencies:
   - drupal:media
   - drupal:node
   - drupal:file
+  - islandora:islandora

@@ -30,7 +30,7 @@ class QueryTagger {
 
   /**
    * The entity type manager service.
-   * 
+   *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
   protected EntityTypeManagerInterface $entityTypeManager;
