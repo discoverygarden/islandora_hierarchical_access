@@ -1,0 +1,55 @@
+<?php
+
+/**
+ * @file
+ * General module hook implementations.
+ */
+
+use Drupal\access_control_model\LUTGeneratorInterface;
+use Drupal\file\FileInterface;
+use Drupal\media\MediaInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for node entities.
+ */
+function access_control_model_node_delete(NodeInterface $entity) {
+  \Drupal::database()->delete(LUTGeneratorInterface::TABLE_NAME)
+    ->condition('nid', $entity->id())
+    ->execute();
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for file entities.
+ */
+function access_control_model_file_delete(FileInterface $entity) {
+  \Drupal::database()->delete(LUTGeneratorInterface::TABLE_NAME)
+    ->condition('fid', $entity->id())
+    ->execute();
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for media entities.
+ */
+function access_control_model_media_delete(MediaInterface $entity) {
+  \Drupal::database()->delete(LUTGeneratorInterface::TABLE_NAME)
+    ->condition('mid', $entity->id())
+    ->execute();
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert() for media entities.
+ */
+function access_control_model_media_insert(MediaInterface $entity) {
+  /** @var LUTGeneratorInterface $generator */
+  $generator = \Drupal::service('access_control_model.lut_generator');
+  $generator->generate($entity->id());
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update() for media entities.
+ */
+function access_control_model_media_update(MediaInterface $entity) {
+  access_control_model_media_delete($entity);
+  access_control_model_media_insert($entity);
+}

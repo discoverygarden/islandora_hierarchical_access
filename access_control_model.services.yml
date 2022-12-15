@@ -1,0 +1,7 @@
+---
+services:
+  access_control_model.lut_generator:
+    class: '\Drupal\access_control_model\LUTGenerator'
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
