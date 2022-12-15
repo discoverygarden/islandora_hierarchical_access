@@ -144,3 +144,17 @@ function access_control_model_media_access(MediaInterface $entity, $operation, A
 
   return $result;
 }
+
+/**
+ * Implements hook_query_TAG_alter() for file_access tagged queries.
+ */
+function access_control_model_query_file_access_alter(AlterableInterface $query) {
+  \Drupal::service('access_control_model.query_tagger')->tagFile($query);
+}
+
+/**
+ * Implements hook_query_TAG_alter() for media_access tagged queries.
+ */
+function access_control_model_query_media_access_alter(AlterableInterface $query) {
+  \Drupal::service('access_control_model.query_tagger')->tagMedia($query);
+}

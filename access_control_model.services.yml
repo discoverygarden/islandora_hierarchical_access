@@ -5,3 +5,9 @@ services:
     arguments:
       - '@database'
       - '@entity_type.manager'
+  access_control_model.query_tagger:
+    class: '\Drupal\access_control_model\Access\QueryTagger'
+    arguments:
+      - '@database'
+      - '@module_handler'
+      - '@entity_type.manager'
