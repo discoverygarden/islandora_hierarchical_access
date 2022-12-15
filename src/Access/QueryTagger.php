@@ -29,11 +29,11 @@ class QueryTagger {
   protected ModuleHandlerInterface $moduleHandler;
 
   /**
-   * Memoize the results.
-   *
-   * @var string[]|null
+   * The entity type manager service.
+   * 
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
-  protected ?array $uniqueFileFields = NULL;
+  protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
    * Constructor.
@@ -90,29 +90,6 @@ class QueryTagger {
     $original_conditions = $new_and->conditions();
 
     return $query;
-  }
-
-  /**
-   * Helper; identify the unique fields used.
-   *
-   * Some different media types use the same fields, such as "extracted text"
-   * and "file"... so let's avoid querying both.
-   *
-   * @return string[]
-   *   The list of field names to use.
-   */
-  protected function uniqueFilefields() : array {
-    if ($this->uniqueFileFields === NULL) {
-      $this->uniqueFileFields = [];
-      foreach (_dgi_i8_helper_media_file_fields() as $field) {
-        $name = $field->get('field_name');
-        if (!in_array($name, $this->uniqueFileFields)) {
-          $this->uniqueFileFields[] = $name;
-        }
-      }
-    }
-
-    return $this->uniqueFileFields;
   }
 
   /**
