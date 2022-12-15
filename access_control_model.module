@@ -6,6 +6,8 @@
  */
 
 use Drupal\access_control_model\LUTGeneratorInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\file\FileInterface;
 use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
@@ -52,4 +54,93 @@ function access_control_model_media_insert(MediaInterface $entity) {
 function access_control_model_media_update(MediaInterface $entity) {
   access_control_model_media_delete($entity);
   access_control_model_media_insert($entity);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access() for file entities.
+ */
+function access_control_model_file_access(FileInterface $entity, $operation, AccountInterface $account) {
+  $result = AccessResult::neutral()
+    ->addCacheableDependency($entity)
+    ->addCacheableDependency($account);
+
+  if (in_array($operation, ['view', 'download'], TRUE)) {
+    $media_ids = \Drupal::database()->select(LUTGeneratorInterface::TABLE_NAME, 'lut')
+      ->fields('lut', ['mid'])
+      ->distinct()
+      ->condition('fid', $entity->id())
+      ->execute()
+      ->fetchCol();
+
+    if (empty($media_ids)) {
+      // Failed to find any media: We have no opinion.
+      return $result->addCacheTags(['media_list']);
+    }
+
+    $storage = \Drupal::entityTypeManager()->getStorage('media');
+    foreach ($media_ids as $id) {
+      $media = $storage->load($id);
+      if (!$media) {
+        // Inconclusive; failed to load.
+        continue;
+      }
+
+      $media_access = $media->access($operation, $account, TRUE);
+      if ($media_access->isAllowed()) {
+        // It's go time!
+        return $result->orIf($media_access);
+      }
+    }
+
+    // Exhaustively searched the media and found nothing: Deny.
+    return $result->orIf(AccessResult::forbidden());
+  }
+
+  return $result;
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access() for media entities.
+ */
+function access_control_model_media_access(MediaInterface $entity, $operation, AccountInterface $account) {
+  $result = AccessResult::neutral()
+    ->addCacheableDependency($entity)
+    ->addCacheableDependency($account);
+
+  if (in_array($operation, ['view', 'download'], TRUE)) {
+    $node_ids = \Drupal::database()->select(LUTGeneratorInterface::TABLE_NAME, 'lut')
+      ->fields('lut', ['nid'])
+      ->distinct()
+      ->condition('mid', $entity->id())
+      ->execute()
+      ->fetchCol();
+
+    if (empty($node_ids)) {
+      // Failed to find any node: We have no opinion.
+      return $result->addCacheTags(['node_list']);
+    }
+
+    $storage = \Drupal::entityTypeManager()->getStorage('node');
+
+    foreach ($node_ids as $id) {
+      $node = $storage->load($id);
+      if ($node) {
+        // Inconclusive; failed to load.
+        continue;
+      }
+
+      $node_access = $node->access('view', $account, TRUE);
+      if ($node_access->isAllowed()) {
+        // Found a node which is viewable: Let it through.
+        return $result->orIf($node_access)
+          ->addCacheableDependency($node);
+      }
+    }
+
+    // Exhaustively search the nodes: Deny.
+    return $result->orIf(AccessResult::forbidden())
+      ->addCacheTags(['node_list']);
+  }
+
+  return $result;
 }
