@@ -1,0 +1,91 @@
+<?php
+
+/**
+ * @file
+ * General module hook implementations.
+ */
+
+use Drupal\Core\Session\AccountInterface;
+use Drupal\file\FileInterface;
+use Drupal\media\MediaInterface;
+use Drupal\node\NodeInterface;
+use Drupal\Core\Database\Query\AlterableInterface;
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for node entities.
+ */
+function islandora_hierarchical_access_node_delete(NodeInterface $entity) {
+  \Drupal::service('islandora_hierarchical_access.entity_operations_helper')->entityDelete('nid', $entity->id());
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for file entities.
+ */
+function islandora_hierarchical_access_file_delete(FileInterface $entity) {
+  \Drupal::service('islandora_hierarchical_access.entity_operations_helper')->entityDelete('fid', $entity->id());
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for media entities.
+ */
+function islandora_hierarchical_access_media_delete(MediaInterface $entity) {
+  \Drupal::service('islandora_hierarchical_access.entity_operations_helper')->entityDelete('mid', $entity->id());
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert() for media entities.
+ */
+function islandora_hierarchical_access_media_insert(MediaInterface $entity) {
+  \Drupal::service('islandora_hierarchical_access.entity_operations_helper')->mediaEntityInsert($entity);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update() for media entities.
+ */
+function islandora_hierarchical_access_media_update(MediaInterface $entity) {
+  \Drupal::service('islandora_hierarchical_access.entity_operations_helper')->mediaEntityUpdate('mid', $entity);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access() for file entities.
+ */
+function islandora_hierarchical_access_file_access(
+  FileInterface $entity,
+  $operation,
+  AccountInterface $account
+) {
+  if (in_array($operation, ['view', 'download'], TRUE)) {
+    return \Drupal::service('islandora_hierarchical_access.entity_operations_helper')
+      ->entityAccess($entity, $operation, $account);
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access() for media entities.
+ */
+function islandora_hierarchical_access_media_access(
+  MediaInterface $entity,
+  $operation,
+  AccountInterface $account
+) {
+  if (in_array($operation, ['view', 'download'], TRUE)) {
+    return \Drupal::service('islandora_hierarchical_access.entity_operations_helper')
+      ->entityAccess($entity, $operation, $account);
+  }
+}
+
+/**
+ * Implements hook_query_TAG_alter() for file_access tagged queries.
+ */
+function islandora_hierarchical_access_query_file_access_alter(AlterableInterface $query) {
+  Drupal::service('islandora_hierarchical_access.query_tagger')
+    ->tagFile($query);
+}
+
+/**
+ * Implements hook_query_TAG_alter() for media_access tagged queries.
+ */
+function islandora_hierarchical_access_query_media_access_alter(AlterableInterface $query) {
+  Drupal::service('islandora_hierarchical_access.query_tagger')
+    ->tagMedia($query);
+}

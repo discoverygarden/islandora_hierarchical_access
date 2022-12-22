@@ -1,15 +1,15 @@
 <?php
 
-namespace Drupal\access_control_model;
+namespace Drupal\islandora_hierarchical_access;
 
 interface LUTGeneratorInterface {
 
-  public const TABLE_NAME = 'access_control_model_lut';
+  public const TABLE_NAME = 'islandora_hierarchical_access_lut';
 
   /**
    * Fully regenerate the lookup table.
    */
-  public function regenerate() : void;
+  public function regenerate(): void;
 
   /**
    * Generate LUT.
@@ -19,5 +19,6 @@ interface LUTGeneratorInterface {
    *   will be completely regenerated. If provided, only those rows resulting
    *   from the given media ID will be added to the table.
    */
-  public function generate(int $mid = NULL) : void;
+  public function generate(int $mid = NULL): void;
+
 }

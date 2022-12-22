@@ -1,5 +1,5 @@
 {
-    "name": "discoverygarden/access_control_model",
+    "name": "discoverygarden/islandora_hierarchical_access",
     "type": "drupal-module",
     "require": {
         "islandora/islandora": "^2"
