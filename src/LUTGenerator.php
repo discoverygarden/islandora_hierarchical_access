@@ -3,6 +3,7 @@
 namespace Drupal\islandora_hierarchical_access;
 
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldConfigInterface;
 use Drupal\islandora\IslandoraUtils;
@@ -43,15 +44,15 @@ class LUTGenerator implements LUTGeneratorInterface {
   /**
    * {@inheritDoc}
    */
-  public function generate(int $mid = NULL): void {
+  public function generate(EntityInterface $entity = NULL): void {
     $query = $this->database->select('node', 'n');
     $fmo = IslandoraUtils::MEDIA_OF_FIELD;
     $fmo_alias = $query->join('media__' . $fmo, 'fmo', "%alias.{$fmo}_target_id = n.nid");
     $media_alias = $query->join('media', 'm',
       "%alias.mid = {$fmo_alias}.entity_id");
 
-    if ($mid) {
-      $query->condition("{$media_alias}.mid", $mid);
+    if ($entity) {
+      $query->condition("{$media_alias}.mid", $entity->id());
     }
 
     $aliases = [];
@@ -85,19 +86,16 @@ class LUTGenerator implements LUTGeneratorInterface {
     return $this->uniqueFileFields;
   }
 
-  protected function getFileFields(): array {
-    $fields = [];
-
+  protected function getFileFields(): iterable {
+    /** @var \Drupal\media\MediaTypeInterface $types */
     $types = $this->entityTypeManager->getStorage('media_type')->loadMultiple();
     foreach ($types as $type) {
       $field = $type->getSource()->getSourceFieldDefinition($type);
       $item_def = $field->getItemDefinition();
       if ($item_def->getSetting('handler') == 'default:file') {
-        $fields[] = $field;
+        yield $field;
       }
     }
-
-    return $fields;
   }
 
 }
