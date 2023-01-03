@@ -47,37 +47,43 @@ class EntityAccessHandler implements EntityHandlerInterface {
   }
 
   /**
-   * Drupal's databse service.
+   * Drupal's database service.
+   *
    * @var \Drupal\Core\Database\Connection
    */
   protected Connection $database;
 
   /**
    * Target operations under which to test.
+   *
    * @var string[]
    */
   protected array $ops;
 
   /**
    * The target type from which to inherit access constraints.
+   *
    * @var \Drupal\Core\Entity\EntityTypeInterface
    */
   protected EntityTypeInterface $targetType;
 
   /**
    * The target type's storage service.
+   *
    * @var \Drupal\Core\Entity\EntityStorageInterface
    */
   protected EntityStorageInterface $storage;
 
   /**
    * The column for matching the current entity in the LUT.
+   *
    * @var string
    */
   protected string $column;
 
   /**
    * The column of the target type to return from the LUT.
+   *
    * @var string
    */
   protected string $targetColumn;
@@ -120,7 +126,7 @@ class EntityAccessHandler implements EntityHandlerInterface {
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity being checked for access.
-   * @param $operation
+   * @param string $operation
    *   The operation being checked for access.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The account wanting to perform the operation.
@@ -151,7 +157,7 @@ class EntityAccessHandler implements EntityHandlerInterface {
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity being checked.
-   * @param $operation
+   * @param string $operation
    *   The operation on the entity being checked.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The account wanting to perform the operation.
@@ -159,12 +165,12 @@ class EntityAccessHandler implements EntityHandlerInterface {
    * @return \Drupal\Core\Access\AccessResultInterface
    *   The result of the access check as an object.
    */
-  protected function doCheck(EntityInterface $entity, $operation, AccountInterface $account) : AccessResultInterface{
+  protected function doCheck(EntityInterface $entity, $operation, AccountInterface $account) : AccessResultInterface {
     $result = AccessResult::neutral("No candidate target entities found.")
       ->addCacheableDependency($entity)
       ->addCacheableDependency($account);
 
-    $entity_ids = $this->getEntityIdsFromLUT($entity);
+    $entity_ids = $this->lookupEntityIds($entity);
 
     if (empty($entity_ids)) {
       // Failed to find any node: We have no opinion.
@@ -194,13 +200,13 @@ class EntityAccessHandler implements EntityHandlerInterface {
   /**
    * Helper; perform lookup using LUT.
    *
-   * @param EntityInterface $entity
+   * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity to lookup.
    *
    * @return int[]|string[]
    *   An array of IDs of the looked-up target entities.
    */
-  protected function getEntityIdsFromLUT(EntityInterface $entity) : array {
+  protected function lookupEntityIds(EntityInterface $entity) : array {
     return $this->database->select(LUTGeneratorInterface::TABLE_NAME, 'lut')
       ->fields('lut', [$this->targetColumn])
       ->distinct()

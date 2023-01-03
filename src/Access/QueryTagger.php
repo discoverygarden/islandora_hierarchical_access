@@ -193,8 +193,7 @@ class QueryTagger {
    *   The query which has been dealt with... should be the same query, just
    *   returning for (potential) convenience.
    */
-  protected function andifyQuery(AlterableInterface $query
-  ): AlterableInterface {
+  protected function andifyQuery(AlterableInterface $query): AlterableInterface {
     $original_conditions =& $query->conditions();
     if ($original_conditions['#conjunction'] === 'AND') {
       // Nothing to do...

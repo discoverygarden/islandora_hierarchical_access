@@ -51,24 +51,28 @@ class EntityCUDHandler implements EntityHandlerInterface {
 
   /**
    * Drupal's database service.
+   *
    * @var \Drupal\Core\Database\Connection
    */
   protected Connection $database;
 
   /**
    * LUT generator service.
+   *
    * @var \Drupal\islandora_hierarchical_access\LUTGeneratorInterface
    */
   protected LUTGeneratorInterface $generator;
 
   /**
    * The LUT column associated with the given entity type to target.
+   *
    * @var string
    */
   protected string $column;
 
   /**
    * Bitfield identifying which operations are valid for the given entity type.
+   *
    * @var int
    */
   protected int $operations;

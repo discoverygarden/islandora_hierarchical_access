@@ -5,18 +5,37 @@ namespace Drupal\islandora_hierarchical_access;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Field\FieldConfigInterface;
 use Drupal\islandora\IslandoraUtils;
-use Exception;
 
+/**
+ * Lookup table generator service implementation.
+ */
 class LUTGenerator implements LUTGeneratorInterface {
 
+  /**
+   * The database service.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
   protected Connection $database;
 
+  /**
+   * The entity type manager service.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
   protected EntityTypeManagerInterface $entityTypeManager;
 
+  /**
+   * Memoize the list of fields to be considered.
+   *
+   * @var string[]|null
+   */
   protected ?array $uniqueFileFields = NULL;
 
+  /**
+   * Constructor.
+   */
   public function __construct(
     Connection $database,
     EntityTypeManagerInterface $entityTypeManager
@@ -31,11 +50,10 @@ class LUTGenerator implements LUTGeneratorInterface {
   public function regenerate(): void {
     $tx = $this->database->startTransaction();
     try {
-
-
       $this->database->truncate(static::TABLE_NAME)->execute();
       $this->generate();
-    } catch (Exception $e) {
+    }
+    catch (\Exception $e) {
       $tx->rollBack();
       throw $e;
     }
@@ -72,6 +90,15 @@ class LUTGenerator implements LUTGeneratorInterface {
     $this->database->insert(static::TABLE_NAME)->from($query)->execute();
   }
 
+  /**
+   * Build out a unique array of the fields to be considered.
+   *
+   * @return string[]
+   *   The fields to be considered.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
   protected function uniqueFileFields(): array {
     if ($this->uniqueFileFields === NULL) {
       $this->uniqueFileFields = [];
@@ -86,8 +113,18 @@ class LUTGenerator implements LUTGeneratorInterface {
     return $this->uniqueFileFields;
   }
 
-  protected function getFileFields(): iterable {
-    /** @var \Drupal\media\MediaTypeInterface $types */
+  /**
+   * Generate the file fields to be considered.
+   *
+   * @phpcs:ignore Drupal.Commenting.FunctionComment.InvalidReturn,Drupal.Commenting.DocComment.SpacingBeforeTags
+   * @return iterable<\Drupal\Core\Field\FieldDefinitionInterface>
+   *   An iterable of the fields to be considered.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
+  protected function getFileFields() : iterable {
+    /** @var \Drupal\media\MediaTypeInterface[] $types */
     $types = $this->entityTypeManager->getStorage('media_type')->loadMultiple();
     foreach ($types as $type) {
       $field = $type->getSource()->getSourceFieldDefinition($type);

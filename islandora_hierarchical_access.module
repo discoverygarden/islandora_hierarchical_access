@@ -1,4 +1,3 @@
-
 <?php
 
 /**
@@ -14,7 +13,6 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\islandora_hierarchical_access\EntityAccessHandler;
 use Drupal\islandora_hierarchical_access\EntityCUDHandler;
 use Drupal\Core\Database\Query\AlterableInterface;
-
 
 /**
  * Implements hook_entity_type_alter().
@@ -74,7 +72,7 @@ function islandora_hierarchical_access_entity_access(
   EntityInterface $entity,
   $operation,
   AccountInterface $account
-) : AccessResultInterface{
+) : AccessResultInterface {
   $entity_type = $entity->getEntityType();
   if ($entity_type->hasHandlerClass(EntityAccessHandler::NAME)) {
     /** @var \Drupal\islandora_hierarchical_access\EntityAccessHandler $handler */
