@@ -46,7 +46,7 @@ class LUTGenerator implements LUTGeneratorInterface {
   public function generate(int $mid = NULL): void {
     $query = $this->database->select('node', 'n');
     $fmo = IslandoraUtils::MEDIA_OF_FIELD;
-    $fmo_alias = $query->join($fmo, 'fmo', "%alias.{$fmo}_target_id = n.nid");
+    $fmo_alias = $query->join('media__' . $fmo, 'fmo', "%alias.{$fmo}_target_id = n.nid");
     $media_alias = $query->join('media', 'm',
       "%alias.mid = {$fmo_alias}.entity_id");
 
@@ -85,7 +85,7 @@ class LUTGenerator implements LUTGeneratorInterface {
     return $this->uniqueFileFields;
   }
 
-  protected function getFileFields(): FieldConfigInterface {
+  protected function getFileFields(): array {
     $fields = [];
 
     $types = $this->entityTypeManager->getStorage('media_type')->loadMultiple();

@@ -18,20 +18,23 @@ function islandora_hierarchical_access_schema(): array {
     'fields' => [
       'nid' => [
         'description' => 'The relevant node ID.',
-        'type' => 'bigint',
+        'type' => 'int',
         'unsigned' => TRUE,
+        'default' => 0,
         'not null' => TRUE,
       ],
       'mid' => [
         'description' => 'The relevant media ID.',
-        'type' => 'bigint',
+        'type' => 'int',
         'unsigned' => TRUE,
+        'default' => 0,
         'not null' => TRUE,
       ],
       'fid' => [
         'description' => 'The relevant file ID.',
-        'type' => 'bigint',
+        'type' => 'int',
         'unsigned' => TRUE,
+        'default' => 0,
         'not null' => TRUE,
       ],
     ],
