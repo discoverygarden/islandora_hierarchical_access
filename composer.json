@@ -1,4 +1,4 @@
 {
-  "name": "discoverygarden/access_control_model",
-  "type": "drupal-module"
+    "name": "discoverygarden/islandora_hierarchical_access",
+    "type": "drupal-module"
 }
