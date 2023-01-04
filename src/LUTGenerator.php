@@ -75,17 +75,21 @@ class LUTGenerator implements LUTGeneratorInterface {
 
     $aliases = [];
     foreach ($this->uniqueFileFields() as $field) {
-      $field_alias = $query->join("media__{$field}", 'mf',
+      $field_alias = $query->leftJoin("media__{$field}", 'mf',
         "%alias.entity_id = {$media_alias}.mid");
       $aliases[] = "{$field_alias}.{$field}_target_id";
     }
-    $file_alias = $query->join('file_managed', 'fm',
+    $file_alias = $query->leftJoin('file_managed', 'fm',
       implode(' OR ', array_map(function ($field_alias) {
         return "%alias.fid = $field_alias";
       }, $aliases)));
     $query->fields('n', ['nid'])
-      ->fields($media_alias, ['mid'])
-      ->fields($file_alias, ['fid']);
+      ->fields($media_alias, ['mid']);
+
+    // XXX: Rework NULLs from the left join to files to our LUT's default of "0"
+    // for things like "remote media" that are not backed by managed file
+    // entities.
+    $query->addExpression("COALESCE({$file_alias}.fid, 0)", 'fid');
 
     $this->database->insert(static::TABLE_NAME)->from($query)->execute();
   }
