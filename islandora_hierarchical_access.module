@@ -20,7 +20,7 @@ use Drupal\Core\Database\Query\AlterableInterface;
 function islandora_hierarchical_access_entity_type_alter(array &$entity_types) : void {
   /** @var \Drupal\Core\Entity\EntityTypeInterface $entity_type */
   foreach ($entity_types as $entity_type) {
-    if (!is_a($entity_type->getStorageClass(), SqlEntityStorageInterface::class)) {
+    if (!is_a($entity_type->getStorageClass(), SqlEntityStorageInterface::class, TRUE)) {
       continue;
     }
 
@@ -33,10 +33,12 @@ function islandora_hierarchical_access_entity_type_alter(array &$entity_types) :
  * Implements hook_entity_insert().
  */
 function islandora_hierarchical_access_entity_insert(EntityInterface $entity) : void {
-  $entity_type = $entity->getEntityType();
-  if ($entity_type->hasHandlerClass(EntityCUDHandler::NAME)) {
+  /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
+  $entity_type_manager = \Drupal::service('entity_type.manager');
+  $entity_type_id = $entity->getEntityTypeId();
+  if ($entity_type_manager->hasHandler($entity_type_id, EntityCUDHandler::NAME)) {
     /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandler $handler */
-    $handler = $entity_type->getHandlerClass(EntityCUDHandler::NAME);
+    $handler = $entity_type_manager->getHandler($entity_type_id, EntityCUDHandler::NAME);
     $handler->create($entity);
   }
 }
@@ -45,10 +47,12 @@ function islandora_hierarchical_access_entity_insert(EntityInterface $entity) : 
  * Implements hook_entity_update().
  */
 function islandora_hierarchical_access_entity_update(EntityInterface $entity) : void {
-  $entity_type = $entity->getEntityType();
-  if ($entity_type->hasHandlerClass(EntityCUDHandler::NAME)) {
+  /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
+  $entity_type_manager = \Drupal::service('entity_type.manager');
+  $entity_type_id = $entity->getEntityTypeId();
+  if ($entity_type_manager->hasHandler($entity_type_id, EntityCUDHandler::NAME)) {
     /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandler $handler */
-    $handler = $entity_type->getHandlerClass(EntityCUDHandler::NAME);
+    $handler = $entity_type_manager->getHandler($entity_type_id, EntityCUDHandler::NAME);
     $handler->update($entity);
   }
 }
@@ -57,10 +61,12 @@ function islandora_hierarchical_access_entity_update(EntityInterface $entity) : 
  * Implements hook_entity_delete().
  */
 function islandora_hierarchical_access_entity_delete(EntityInterface $entity) : void {
-  $entity_type = $entity->getEntityType();
-  if ($entity_type->hasHandlerClass(EntityCUDHandler::NAME)) {
+  /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
+  $entity_type_manager = \Drupal::service('entity_type.manager');
+  $entity_type_id = $entity->getEntityTypeId();
+  if ($entity_type_manager->hasHandler($entity_type_id, EntityCUDHandler::NAME)) {
     /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandler $handler */
-    $handler = $entity_type->getHandlerClass(EntityCUDHandler::NAME);
+    $handler = $entity_type_manager->getHandler($entity_type_id, EntityCUDHandler::NAME);
     $handler->delete($entity);
   }
 }
@@ -73,10 +79,12 @@ function islandora_hierarchical_access_entity_access(
   $operation,
   AccountInterface $account
 ) : AccessResultInterface {
-  $entity_type = $entity->getEntityType();
-  if ($entity_type->hasHandlerClass(EntityAccessHandler::NAME)) {
+  /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
+  $entity_type_manager = \Drupal::service('entity_type.manager');
+  $entity_type_id = $entity->getEntityTypeId();
+  if ($entity_type_manager->hasHandler($entity_type_id, EntityAccessHandler::NAME)) {
     /** @var \Drupal\islandora_hierarchical_access\EntityAccessHandler $handler */
-    $handler = $entity_type->getHandlerClass(EntityAccessHandler::NAME);
+    $handler = $entity_type_manager->getHandler($entity_type_id, EntityAccessHandler::NAME);
     return $handler->check(
       $entity,
       $operation,

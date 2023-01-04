@@ -7,6 +7,8 @@ use Drupal\Core\Entity\EntityHandlerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\file\FileInterface;
+use Drupal\media\MediaInterface;
+use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -115,7 +117,7 @@ class EntityCUDHandler implements EntityHandlerInterface {
       return;
     }
 
-    $this->generator->generate($entity->id());
+    $this->generator->generate($entity);
   }
 
   /**
