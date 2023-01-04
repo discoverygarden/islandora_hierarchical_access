@@ -135,7 +135,7 @@ class EntityAccessHandler implements EntityHandlerInterface {
    * @return \Drupal\Core\Access\AccessResultInterface
    *   The access result object.
    */
-  public function check(EntityInterface $entity, $operation, AccountInterface $account) : AccessResultInterface {
+  public function check(EntityInterface $entity, string $operation, AccountInterface $account) : AccessResultInterface {
     if (!in_array($operation, $this->ops, TRUE)) {
       return AccessResult::neutral("Irrelevant operation.");
     }
@@ -166,7 +166,7 @@ class EntityAccessHandler implements EntityHandlerInterface {
    * @return \Drupal\Core\Access\AccessResultInterface
    *   The result of the access check as an object.
    */
-  protected function doCheck(EntityInterface $entity, $operation, AccountInterface $account) : AccessResultInterface {
+  protected function doCheck(EntityInterface $entity, string $operation, AccountInterface $account) : AccessResultInterface {
     $result = AccessResult::neutral("No candidate target entities found.")
       ->addCacheableDependency($entity)
       ->addCacheableDependency($account);
