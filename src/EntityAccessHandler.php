@@ -167,7 +167,8 @@ class EntityAccessHandler implements EntityHandlerInterface {
    *   The result of the access check as an object.
    */
   protected function doCheck(EntityInterface $entity, string $operation, AccountInterface $account) : AccessResultInterface {
-    $result = AccessResult::neutral("No candidate target entities found.")
+    /** @var \Drupal\Core\Access\AccessResultReasonInterface $result */
+    $result = AccessResult::neutral()
       ->addCacheableDependency($entity)
       ->addCacheableDependency($account);
 
@@ -175,13 +176,19 @@ class EntityAccessHandler implements EntityHandlerInterface {
 
     if (empty($entity_ids)) {
       // Failed to find any node: We have no opinion.
-      return $result->addCacheTags($this->getEmptyCacheTags());
+      return $result->setReason("No candidate target entities found.")
+        ->addCacheTags($this->getEmptyCacheTags());
     }
 
+    $reasons = [];
     foreach ($entity_ids as $id) {
       $loadedEntity = $this->storage->load($id);
-      if ($loadedEntity) {
+      if (!$loadedEntity) {
         // Inconclusive; failed to load.
+        $reasons[] = strtr("Rejecting {type} {id} because it failed to load.", [
+          '{type}' => $this->targetType->id(),
+          '{id}' => $id,
+        ]);
         continue;
       }
 
@@ -191,10 +198,19 @@ class EntityAccessHandler implements EntityHandlerInterface {
         return $result->orIf($entity_access)
           ->addCacheableDependency($loadedEntity);
       }
+      else {
+        $reasons[] = strtr("Rejecting {type} {id} because provided reasoning: {reason}", [
+          '{type}' => $this->targetType->id(),
+          '{id}' => $id,
+          '{reason}' => $entity_access->getReason(),
+        ]);
+      }
     }
 
     // Exhaustively search the nodes: Deny.
-    return $result->orIf(AccessResult::forbidden("Failed to find an entity allowing access."))
+    return $result->orIf(AccessResult::forbidden(strtr("Failed to find an entity allowing access: {reasoning}", [
+      '{reasoning}' => implode(' ', $reasons),
+    ])))
       ->addCacheTags($this->getEmptyCacheTags());
   }
 
