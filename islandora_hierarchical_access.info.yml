@@ -1,4 +1,4 @@
-name: Access Control Model
+name: Islandora Hierarchical Access
 description: Files belong to media belong to nodes, so have permissions propagate down to things that belong.
 type: module
 core_version_requirement: ^9

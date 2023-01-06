@@ -5,12 +5,12 @@
  * Module (un)installation and update hooks.
  */
 
-use Drupal\access_control_model\LUTGeneratorInterface;
+use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
 
 /**
  * Implements hook_schema().
  */
-function access_control_model_schema() : array {
+function islandora_hierarchical_access_schema(): array {
   $schema = [];
 
   $schema[LUTGeneratorInterface::TABLE_NAME] = [
@@ -18,20 +18,21 @@ function access_control_model_schema() : array {
     'fields' => [
       'nid' => [
         'description' => 'The relevant node ID.',
-        'type' => 'bigint',
+        'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
       'mid' => [
         'description' => 'The relevant media ID.',
-        'type' => 'bigint',
+        'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
       'fid' => [
         'description' => 'The relevant file ID.',
-        'type' => 'bigint',
+        'type' => 'int',
         'unsigned' => TRUE,
+        'default' => 0,
         'not null' => TRUE,
       ],
     ],
@@ -53,8 +54,8 @@ function access_control_model_schema() : array {
       'file_id_fk' => [
         'table' => 'file_managed',
         'columns' => ['fid' => 'fid'],
-      ]
-    ]
+      ],
+    ],
   ];
 
   return $schema;
@@ -63,8 +64,8 @@ function access_control_model_schema() : array {
 /**
  * Implements hook_install().
  */
-function access_control_model_install() {
-  /** @var \Drupal\access_control_model\LUTGeneratorInterface $lut_generator */
-  $lut_generator = \Drupal::service('access_control_model.lut_generator');
+function islandora_hierarchical_access_install() {
+  /** @var \Drupal\islandora_hierarchical_access\LUTGeneratorInterface $lut_generator */
+  $lut_generator = Drupal::service('islandora_hierarchical_access.lut_generator');
   $lut_generator->regenerate();
 }
