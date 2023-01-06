@@ -1,6 +1,7 @@
 {
     "name": "discoverygarden/islandora_hierarchical_access",
     "type": "drupal-module",
+    "license": "GPL-3.0-or-later",
     "require": {
         "islandora/islandora": "^2"
     }
