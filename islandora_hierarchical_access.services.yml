@@ -11,9 +11,3 @@ services:
       - '@database'
       - '@module_handler'
       - '@entity_type.manager'
-  islandora_hierarchical_access.entity_operations_helper:
-    class: '\Drupal\islandora_hierarchical_access\EntityOperationsHelper'
-    arguments:
-      - '@database'
-      - '@entity_type.manager'
-      - '@islandora_hierarchical_access.lut_generator'
