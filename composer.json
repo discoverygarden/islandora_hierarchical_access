@@ -1,4 +1,7 @@
 {
     "name": "discoverygarden/islandora_hierarchical_access",
-    "type": "drupal-module"
+    "type": "drupal-module",
+    "require": {
+        "islandora/islandora": "^2"
+    }
 }

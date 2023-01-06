@@ -1,0 +1,13 @@
+---
+services:
+  islandora_hierarchical_access.lut_generator:
+    class: '\Drupal\islandora_hierarchical_access\LUTGenerator'
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+  islandora_hierarchical_access.query_tagger:
+    class: '\Drupal\islandora_hierarchical_access\Access\QueryTagger'
+    arguments:
+      - '@database'
+      - '@module_handler'
+      - '@entity_type.manager'

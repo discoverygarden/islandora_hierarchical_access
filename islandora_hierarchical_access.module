@@ -1,0 +1,112 @@
+<?php
+
+/**
+ * @file
+ * General module hook implementations.
+ */
+
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Sql\SqlEntityStorageInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\islandora_hierarchical_access\EntityAccessHandler;
+use Drupal\islandora_hierarchical_access\EntityCUDHandler;
+use Drupal\Core\Database\Query\AlterableInterface;
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function islandora_hierarchical_access_entity_type_alter(array &$entity_types) : void {
+  /** @var \Drupal\Core\Entity\EntityTypeInterface $entity_type */
+  foreach ($entity_types as $entity_type) {
+    if (!is_a($entity_type->getStorageClass(), SqlEntityStorageInterface::class, TRUE)) {
+      continue;
+    }
+
+    EntityCUDHandler::attach($entity_type);
+    EntityAccessHandler::attach($entity_type);
+  }
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function islandora_hierarchical_access_entity_insert(EntityInterface $entity) : void {
+  /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
+  $entity_type_manager = \Drupal::service('entity_type.manager');
+  $entity_type_id = $entity->getEntityTypeId();
+  if ($entity_type_manager->hasHandler($entity_type_id, EntityCUDHandler::NAME)) {
+    /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandler $handler */
+    $handler = $entity_type_manager->getHandler($entity_type_id, EntityCUDHandler::NAME);
+    $handler->create($entity);
+  }
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function islandora_hierarchical_access_entity_update(EntityInterface $entity) : void {
+  /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
+  $entity_type_manager = \Drupal::service('entity_type.manager');
+  $entity_type_id = $entity->getEntityTypeId();
+  if ($entity_type_manager->hasHandler($entity_type_id, EntityCUDHandler::NAME)) {
+    /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandler $handler */
+    $handler = $entity_type_manager->getHandler($entity_type_id, EntityCUDHandler::NAME);
+    $handler->update($entity);
+  }
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function islandora_hierarchical_access_entity_delete(EntityInterface $entity) : void {
+  /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
+  $entity_type_manager = \Drupal::service('entity_type.manager');
+  $entity_type_id = $entity->getEntityTypeId();
+  if ($entity_type_manager->hasHandler($entity_type_id, EntityCUDHandler::NAME)) {
+    /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandler $handler */
+    $handler = $entity_type_manager->getHandler($entity_type_id, EntityCUDHandler::NAME);
+    $handler->delete($entity);
+  }
+}
+
+/**
+ * Implements hook_entity_access().
+ */
+function islandora_hierarchical_access_entity_access(
+  EntityInterface $entity,
+  $operation,
+  AccountInterface $account
+) : AccessResultInterface {
+  /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
+  $entity_type_manager = \Drupal::service('entity_type.manager');
+  $entity_type_id = $entity->getEntityTypeId();
+  if ($entity_type_manager->hasHandler($entity_type_id, EntityAccessHandler::NAME)) {
+    /** @var \Drupal\islandora_hierarchical_access\EntityAccessHandler $handler */
+    $handler = $entity_type_manager->getHandler($entity_type_id, EntityAccessHandler::NAME);
+    return $handler->check(
+      $entity,
+      $operation,
+      $account
+    );
+  }
+
+  return AccessResult::neutral("Unhandled entity type.");
+}
+
+/**
+ * Implements hook_query_TAG_alter() for file_access tagged queries.
+ */
+function islandora_hierarchical_access_query_file_access_alter(AlterableInterface $query) : void {
+  Drupal::service('islandora_hierarchical_access.query_tagger')
+    ->tagFile($query);
+}
+
+/**
+ * Implements hook_query_TAG_alter() for media_access tagged queries.
+ */
+function islandora_hierarchical_access_query_media_access_alter(AlterableInterface $query) : void {
+  Drupal::service('islandora_hierarchical_access.query_tagger')
+    ->tagMedia($query);
+}

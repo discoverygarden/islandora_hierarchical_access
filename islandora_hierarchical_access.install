@@ -1,0 +1,71 @@
+<?php
+
+/**
+ * @file
+ * Module (un)installation and update hooks.
+ */
+
+use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
+
+/**
+ * Implements hook_schema().
+ */
+function islandora_hierarchical_access_schema(): array {
+  $schema = [];
+
+  $schema[LUTGeneratorInterface::TABLE_NAME] = [
+    'description' => 'Lookup table for flattened relationships.',
+    'fields' => [
+      'nid' => [
+        'description' => 'The relevant node ID.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'mid' => [
+        'description' => 'The relevant media ID.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'fid' => [
+        'description' => 'The relevant file ID.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['nid', 'mid', 'fid'],
+    'indexes' => [
+      'node_id' => ['nid'],
+      'media_id' => ['mid'],
+      'file_id' => ['fid'],
+    ],
+    'foreign keys' => [
+      'node_id_fk' => [
+        'table' => 'node',
+        'columns' => ['nid' => 'nid'],
+      ],
+      'media_id_fk' => [
+        'table' => 'media',
+        'columns' => ['mid' => 'mid'],
+      ],
+      'file_id_fk' => [
+        'table' => 'file_managed',
+        'columns' => ['fid' => 'fid'],
+      ],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function islandora_hierarchical_access_install() {
+  /** @var \Drupal\islandora_hierarchical_access\LUTGeneratorInterface $lut_generator */
+  $lut_generator = Drupal::service('islandora_hierarchical_access.lut_generator');
+  $lut_generator->regenerate();
+}
