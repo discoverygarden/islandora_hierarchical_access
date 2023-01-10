@@ -2,7 +2,6 @@
 
 namespace Drupal\islandora_hierarchical_access\Commands;
 
-use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drush\Commands\DrushCommands;
 use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
@@ -12,8 +11,23 @@ use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
  */
 class IslandoraHierarchicalAccessCommands extends DrushCommands {
 
+  /**
+   * The LUT generator service.
+   *
+   * @var \Drupal\islandora_hierarchical_access\LUTGeneratorInterface
+   */
   protected LUTGeneratorInterface $lutGenerator;
 
+  /**
+   * The entity type manager service.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * Constructor.
+   */
   public function __construct(
     LUTGeneratorInterface $lut_generator,
     EntityTypeManagerInterface $entityTypeManager
@@ -27,7 +41,8 @@ class IslandoraHierarchicalAccessCommands extends DrushCommands {
    * Command description here.
    *
    * @param array $options
-   *   An associative array of options whose values come from cli, aliases, config, etc.
+   *   An associative array of options, as per drush.
+   *
    * @option media-ids
    *   A comma-separate list of media IDs, to constrain regeneration.
    * @usage islandora_hierarchical_access:regenerate-lut
@@ -36,7 +51,7 @@ class IslandoraHierarchicalAccessCommands extends DrushCommands {
    *
    * @command islandora_hierarchical_access:regenerate-lut
    */
-  public function regenerateLut($options = ['media-ids' => NULL]) {
+  public function regenerateLut(array $options = ['media-ids' => NULL]) : void {
     if ($options['media-ids']) {
       $media_ids = str_getcsv($options['media-ids']);
       $storage = $this->entityTypeManager->getStorage('media');
