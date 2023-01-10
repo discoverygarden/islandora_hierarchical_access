@@ -4,5 +4,12 @@
     "license": "GPL-3.0-or-later",
     "require": {
         "islandora/islandora": "^2"
+    },
+    "extra": {
+        "drush": {
+            "services": {
+                "drush.services.yml": "^10"
+            }
+        }
     }
 }
