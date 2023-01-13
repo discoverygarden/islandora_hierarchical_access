@@ -63,6 +63,12 @@ class LUTGenerator implements LUTGeneratorInterface {
    * {@inheritDoc}
    */
   public function generate(EntityInterface $entity = NULL): void {
+    if (count($this->uniqueFileFields()) === 0) {
+      // Did not find any fields over which to generate the LUT so abort the
+      // attempt.
+      return;
+    }
+
     $query = $this->database->select('node', 'n');
     $fmo = IslandoraUtils::MEDIA_OF_FIELD;
     $fmo_alias = $query->join('media__' . $fmo, 'fmo', "%alias.{$fmo}_target_id = n.nid");
