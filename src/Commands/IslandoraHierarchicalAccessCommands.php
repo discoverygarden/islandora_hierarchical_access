@@ -57,7 +57,7 @@ class IslandoraHierarchicalAccessCommands extends DrushCommands {
    * @command islandora_hierarchical_access:regenerate-lut
    */
   public function regenerateLut(array $options = ['media-ids' => NULL]) : ExitCodeInterface {
-    $exit_code = 0;
+    $exit_code = static::EXIT_SUCCESS;
     $exit_message = '';
     if ($options['media-ids']) {
       $media_ids = str_getcsv($options['media-ids']);
