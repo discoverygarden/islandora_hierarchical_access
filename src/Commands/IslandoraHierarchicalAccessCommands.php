@@ -2,7 +2,10 @@
 
 namespace Drupal\islandora_hierarchical_access\Commands;
 
+use Consolidation\AnnotatedCommand\CommandResult;
+use Consolidation\AnnotatedCommand\ExitCodeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drush\Commands\DrushCommands;
 use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
 
@@ -10,6 +13,8 @@ use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
  * Hierarchical access drush commands.
  */
 class IslandoraHierarchicalAccessCommands extends DrushCommands {
+
+  use StringTranslationTrait;
 
   /**
    * The LUT generator service.
@@ -51,10 +56,14 @@ class IslandoraHierarchicalAccessCommands extends DrushCommands {
    *
    * @command islandora_hierarchical_access:regenerate-lut
    */
-  public function regenerateLut(array $options = ['media-ids' => NULL]) : void {
+  public function regenerateLut(array $options = ['media-ids' => NULL]) : ExitCodeInterface {
+    $exit_code = 0;
+    $exit_message = '';
     if ($options['media-ids']) {
       $media_ids = str_getcsv($options['media-ids']);
       $storage = $this->entityTypeManager->getStorage('media');
+      $succeeded = 0;
+      $failed = 0;
       foreach ($media_ids as $media_id) {
         $media = $storage->load($media_id);
         if ($media) {
@@ -62,19 +71,28 @@ class IslandoraHierarchicalAccessCommands extends DrushCommands {
           $this->logger()->info('Regenerated LUT rows for {media_id}.', [
             'media_id' => $media_id,
           ]);
+          $succeeded++;
         }
         else {
           $this->logger()->warning("Failed to load {media_id} for LUT regeneration.", [
             'media_id' => $media_id,
           ]);
+          $exit_code = static::EXIT_FAILURE_WITH_CLARITY;
+          $failed++;
         }
       }
+      $exit_message = $this->t('Regenerated @success; failed regenerating @failed records.', [
+        '@success' => $succeeded,
+        '@failed' => $failed,
+      ]);
     }
     else {
       $this->logger()->info('Regenerating full LUT; this could take a while...');
       $this->lutGenerator->regenerate();
       $this->logger()->info('... done!');
+      $exit_message = $this->t("Regenerated lookup-table.");
     }
+    return CommandResult::dataWithExitCode("$exit_message", $exit_code);
   }
 
 }
