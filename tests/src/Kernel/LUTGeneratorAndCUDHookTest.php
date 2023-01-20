@@ -52,7 +52,7 @@ class LUTGeneratorAndCUDHookTest extends KernelTestBase {
     $this->mediaType = $this->createMediaType('file');
     $this->createEntityReferenceField('media',
       $this->mediaType->id(), IslandoraUtils::MEDIA_OF_FIELD,
-      "Media Of", 'node');//$this->contentType->getEntityTypeId());
+      "Media Of", $this->contentType->getEntityType()->getBundleOf());
 
     // Enable our module and install its schema.
     $this->enableModules(['islandora_hierarchical_access']);
