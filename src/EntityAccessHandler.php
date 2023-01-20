@@ -5,7 +5,6 @@ namespace Drupal\islandora_hierarchical_access;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Entity\EntityHandlerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -17,7 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Inherited entity access handler.
  */
-class EntityAccessHandler implements EntityHandlerInterface {
+class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEntityHandlerInterface {
   const NAME = 'islandora_hierarchical_access_access';
   const PROPERTY_NAME__OPS = self::NAME . '_operations';
   const PROPERTY_NAME__COLUMN = self::NAME . '_column';
@@ -25,10 +24,7 @@ class EntityAccessHandler implements EntityHandlerInterface {
   const PROPERTY_NAME__TARGET_TYPE = self::NAME . '_target_type';
 
   /**
-   * Attach entity access handler to the targets.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
-   *   An entity type to which to attempt to attach.
+   * {@inheritDoc}
    */
   public static function attach(EntityTypeInterface $entity_type) : void {
     if (!$entity_type->hasHandlerClass(static::NAME)) {
@@ -123,17 +119,7 @@ class EntityAccessHandler implements EntityHandlerInterface {
   }
 
   /**
-   * Perform the access check.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity being checked for access.
-   * @param string $operation
-   *   The operation being checked for access.
-   * @param \Drupal\Core\Session\AccountInterface $account
-   *   The account wanting to perform the operation.
-   *
-   * @return \Drupal\Core\Access\AccessResultInterface
-   *   The access result object.
+   * {@inheritDoc}
    */
   public function check(EntityInterface $entity, string $operation, AccountInterface $account) : AccessResultInterface {
     if (!in_array($operation, $this->ops, TRUE)) {

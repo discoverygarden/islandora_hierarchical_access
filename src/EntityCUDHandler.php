@@ -3,7 +3,6 @@
 namespace Drupal\islandora_hierarchical_access;
 
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Entity\EntityHandlerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\file\FileInterface;
@@ -14,7 +13,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Perform LUT maintenance on entity CUD operations.
  */
-class EntityCUDHandler implements EntityHandlerInterface {
+class EntityCUDHandler implements EntityCUDHandlerInterface, AttachableEntityHandlerInterface {
   const NAME = 'islandora_hierarchical_access_entity_cud';
   const PROPERTY_NAME__COLUMN = self::NAME . '_column';
   const PROPERTY_NAME__OPERATIONS = self::NAME . '_operations';
@@ -28,10 +27,7 @@ class EntityCUDHandler implements EntityHandlerInterface {
   const OPERATIONS_DELETE = 0x4;
 
   /**
-   * Attach LUT maintenance entity handlers.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
-   *   The entity type to which to attach the handler.
+   * {@inheritDoc}
    */
   public static function attach(EntityTypeInterface $entity_type) : void {
     if (!$entity_type->hasHandlerClass(static::NAME)) {
@@ -107,48 +103,75 @@ class EntityCUDHandler implements EntityHandlerInterface {
   }
 
   /**
-   * Handle entity insertion/creation.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity to handle.
+   * {@inheritDoc}
    */
   public function create(EntityInterface $entity) : void {
     if (!($this->operations & static::OPERATIONS_CREATE)) {
       return;
     }
 
-    $this->generator->generate($entity);
+    $this->doCreate($entity);
   }
 
   /**
-   * Handle entity updates.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity to handle.
+   * {@inheritDoc}
    */
   public function update(EntityInterface $entity) : void {
     if (!($this->operations & static::OPERATIONS_UPDATE)) {
       return;
     }
 
-    $this->delete($entity);
-    $this->create($entity);
+    $this->doUpdate($entity);
   }
 
   /**
-   * Handle entity deletion.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity to handle.
+   * {@inheritDoc}
    */
   public function delete(EntityInterface $entity) : void {
     if (!($this->operations & static::OPERATIONS_DELETE)) {
       return;
     }
 
+    $this->doDelete($entity);
+  }
+
+  /**
+   * Heavy-lifting of creation reaction.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity for which we are responding.
+   *
+   * @return void
+   */
+  protected function doCreate(EntityInterface $entity) : void {
+    $this->generator->generate($entity);
+  }
+
+  /**
+   * Heavy-lifting of deletion reaction.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity for which we are responding.
+   *
+   * @return void
+   */
+  protected function doDelete(EntityInterface $entity): void {
     $this->database->delete(LUTGeneratorInterface::TABLE_NAME)
       ->condition($this->column, $entity->id())
       ->execute();
+  }
+
+  /**
+   * Heavy-lifting of update reaction.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity for which we are responding.
+   *
+   * @return void
+   */
+  protected function doUpdate(EntityInterface $entity) : void {
+    $this->doDelete($entity);
+    $this->doCreate($entity);
   }
 
 }
