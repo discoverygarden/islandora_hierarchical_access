@@ -3,12 +3,10 @@
 namespace Drupal\Tests\islandora_hierarchical_access\Kernel;
 
 use Drupal\Core\Database\StatementInterface;
-use Drupal\file\FileInterface;
 use Drupal\islandora\IslandoraUtils;
 use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\media\MediaTypeInterface;
-use Drupal\node\NodeInterface;
 use Drupal\node\NodeTypeInterface;
 use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;

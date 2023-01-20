@@ -62,5 +62,5 @@ class LUTGeneratorAndCUDHookTest extends AbstractKernelTestBase {
     $media->delete();
     $this->assertEmptyTraversable($this->lutResults());
   }
-  
+
 }
