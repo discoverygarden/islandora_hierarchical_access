@@ -140,8 +140,6 @@ class EntityCUDHandler implements EntityCUDHandlerInterface, AttachableEntityHan
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity for which we are responding.
-   *
-   * @return void
    */
   protected function doCreate(EntityInterface $entity) : void {
     $this->generator->generate($entity);
@@ -152,8 +150,6 @@ class EntityCUDHandler implements EntityCUDHandlerInterface, AttachableEntityHan
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity for which we are responding.
-   *
-   * @return void
    */
   protected function doDelete(EntityInterface $entity): void {
     $this->database->delete(LUTGeneratorInterface::TABLE_NAME)
@@ -166,8 +162,6 @@ class EntityCUDHandler implements EntityCUDHandlerInterface, AttachableEntityHan
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity for which we are responding.
-   *
-   * @return void
    */
   protected function doUpdate(EntityInterface $entity) : void {
     $this->doDelete($entity);

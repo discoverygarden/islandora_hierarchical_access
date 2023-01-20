@@ -3,12 +3,9 @@
 namespace Drupal\Tests\islandora_hierarchical_access\Kernel;
 
 use Drupal\Core\Database\StatementInterface;
-use Drupal\file\FileInterface;
 use Drupal\islandora\IslandoraUtils;
-use Drupal\islandora_hierarchical_access\EntityCUDHandler;
 use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\media\MediaInterface;
 use Drupal\media\MediaTypeInterface;
 use Drupal\node\NodeTypeInterface;
 use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
@@ -16,7 +13,7 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\test_support\Traits\Support\InteractsWithEntities;
 
-class LUTGeneratorTest extends KernelTestBase {
+class LUTGeneratorAndCUDHookTest extends KernelTestBase {
   use EntityReferenceTestTrait;
   use ContentTypeCreationTrait;
   use MediaTypeCreationTrait;
@@ -80,7 +77,11 @@ class LUTGeneratorTest extends KernelTestBase {
   }
 
   /**
-   * @return \Drupal\Core\Entity\ContentEntityInterface[]
+   * @return array{\Drupal\node\NodeInterface, \Drupal\file\FileInterface, \Drupal\media\MediaInterface}
+   *   An array containing:
+   *   - a node
+   *   - a file; and,
+   *   - a media, relating the node and file.
    */
   public function testBasePopulation() : array {
     $this->assertEmptyTraversable($this->lutResults(), 'LUT is initially empty.');
@@ -107,8 +108,20 @@ class LUTGeneratorTest extends KernelTestBase {
     return $this->mediaType->getSource()->getSourceFieldDefinition($this->mediaType)->getName();
   }
 
+  protected function getPopulation($node, $file, $media) {
+    return $this->lutResults([
+      'nid' => $node->id(),
+      'mid' => $media->id(),
+      'fid' => $file->id(),
+    ])->fetchAll(\PDO::FETCH_ASSOC);
+  }
+
+  protected function assertNotAsPopulated($node, $file, $media) {
+    $this->assertCount(0, $this->getPopulation($node, $file, $media),'LUT has the anticipated nunber of values.');
+  }
+
   protected function assertAsPopulated($node, $file, $media) {
-    $lut_values = $this->lutResults()->fetchAll(\PDO::FETCH_ASSOC);
+    $lut_values = $this->getPopulation($node, $file, $media);
     $this->assertCount(1, $lut_values,'LUT has the anticipated nunber of values.');
     $this->assertEquals($node->id(), $lut_values[0]['nid'], 'Has the nid.');
     $this->assertEquals($media->id(), $lut_values[0]['mid'], 'Has the mid.');
@@ -116,19 +129,19 @@ class LUTGeneratorTest extends KernelTestBase {
   }
 
   public function testDeleteNode() {
-    [$node, $file, $media] = $this->testBasePopulation();
+    [$node, , ] = $this->testBasePopulation();
     $node->delete();
     $this->assertEmptyTraversable($this->lutResults());
   }
 
   public function testDeleteFile() {
-    [$node, $file, $media] = $this->testBasePopulation();
+    [, $file, ] = $this->testBasePopulation();
     $file->delete();
     $this->assertEmptyTraversable($this->lutResults());
   }
 
   public function testDeleteMedia() {
-    [$node, $file, $media] = $this->testBasePopulation();
+    [, , $media] = $this->testBasePopulation();
     $media->delete();
     $this->assertEmptyTraversable($this->lutResults());
   }
@@ -144,8 +157,12 @@ class LUTGeneratorTest extends KernelTestBase {
       'uri' => 'info:data/' . $this->randomMachineName(),
     ]);
     $media->{$this->getMediaFieldName()} = $new_file;
+
+    $this->assertNotAsPopulated($node, $new_file, $media);
+    $this->assertAsPopulated($node, $file, $media);
     $media->save();
     $this->assertAsPopulated($node, $new_file, $media);
+    $this->assertNotAsPopulated($node, $file, $media);
 
     $media->delete();
     $this->assertEmptyTraversable($this->lutResults());
