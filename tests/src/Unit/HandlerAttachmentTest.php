@@ -12,13 +12,6 @@ use Drupal\Tests\UnitTestCase;
 
 class HandlerAttachmentTest extends UnitTestCase {
 
-  /**
-   * {@inheritDoc}
-   */
-  public function setUp() {
-    parent::setUp();
-  }
-
   protected function getEntityTypeMock(string $class, string $interface, $set_values = []) : EntityTypeInterface {
     $builder = $this->getMockBuilder(EntityTypeInterface::class);
     $mock = $builder->getMock();
