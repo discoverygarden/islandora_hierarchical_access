@@ -150,4 +150,3 @@ jobs:
           su "$APACHE_USER" -s /bin/bash <<-EOS
           phpunit "--configuration=$DRUPAL_WEB_ROOT/core/phpunit.xml.dist" --group $DRUPAL_EXTENSION_NAME --verbose "$GITHUB_WORKSPACE"
           EOS
-
