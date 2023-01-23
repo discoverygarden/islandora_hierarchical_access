@@ -3,10 +3,13 @@
 namespace Drupal\Tests\islandora_hierarchical_access\Kernel;
 
 use Drupal\Core\Database\StatementInterface;
+use Drupal\file\FileInterface;
 use Drupal\islandora\IslandoraUtils;
 use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\media\MediaInterface;
 use Drupal\media\MediaTypeInterface;
+use Drupal\node\NodeInterface;
 use Drupal\node\NodeTypeInterface;
 use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
@@ -76,25 +79,31 @@ abstract class AbstractKernelTestBase extends KernelTestBase {
     $this->assertEquals(0, iterator_count($iterable), $message);
   }
 
-  protected function createNode() {
-    return $this->createEntity('node', [
+  protected function createNode() : NodeInterface {
+    /** @var \Drupal\node\NodeInterface $entity */
+    $entity = $this->createEntity('node', [
       'type' => $this->contentType->getEntityTypeId(),
       'title' => $this->randomString(),
     ]);
+    return $entity;
   }
 
-  protected function createFile() {
-    return $this->createEntity('file', [
+  protected function createFile() : FileInterface {
+    /** @var \Drupal\file\FileInterface $entity */
+    $entity = $this->createEntity('file', [
       'uri' => 'info:data/' . $this->randomMachineName(),
     ]);
+    return $entity;
   }
 
-  protected function createMedia($file, $node) {
-    return $this->createEntity('media', [
+  protected function createMedia($file, $node) : MediaInterface {
+    /** @var \Drupal\media\MediaInterface $entity */
+    $entity = $this->createEntity('media', [
       'bundle' => $this->mediaType->id(),
       IslandoraUtils::MEDIA_OF_FIELD => $node,
       $this->getMediaFieldName() => $file,
     ]);
+    return $entity;
   }
 
   protected function getMediaFieldName() : string {

@@ -2,21 +2,232 @@
 
 namespace Drupal\Tests\islandora_hierarchical_access\Kernel;
 
+use Drupal\Core\Session\AccountInterface;
+use Drupal\file\FileInterface;
+use Drupal\media\MediaInterface;
+use Drupal\node\NodeInterface;
+use Drupal\Tests\test_support\Traits\Support\InteractsWithAuthentication;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 class AccessControlTest extends AbstractKernelTestBase {
   const KEY = 'islandora_hierarchical_access_access_control_test_key';
 
   use UserCreationTrait;
+  use InteractsWithAuthentication;
 
+  protected NodeInterface $node;
+  protected MediaInterface $media;
+  protected FileInterface $file;
+  protected AccountInterface $user;
+
+  public function setUp() {
+    parent::setUp();
+    $this->enableModules([
+      'islandora_hierarchical_access_test_access',
+    ]);
+
+    $this->node = $this->createNode();
+    $this->file = $this->createFile();
+    $this->media = $this->createMedia($this->file, $this->node);
+    $this->user = $this->setUpCurrentUser([], ['access content'],FALSE);
+    $this->op = 'view';
+  }
+
+
+  protected function passToModule(array $data = []) {
+    $this->setSetting(
+      static::KEY,
+      array_merge_recursive($data, [
+        'entities' => [
+          'file' => [],
+          'media' => [],
+          'node' => [],
+        ],
+        'ops' => [],
+        'accounts' => [],
+      ]
+    ));
+  }
+
+  /**
+   * Test base access.
+   *
+   * Given everything is accessible, things should be accessible.
+   */
   public function testBaseAccess() {
-    $node = $this->createNode();
-    $file = $this->createFile();
-    $media = $this->createMedia($file, $node);
-    $user = $this->createUser();
+    $this->passToModule();
+    $this->assertTrue($this->node->access($this->op));
+    $this->assertTrue($this->file->access($this->op));
+    $this->assertTrue($this->media->access($this->op));
+  }
 
-    $this->assertTrue($node->access('view', $user));
-    $this->assertTrue($file->access('view', $user));
-    $this->assertTrue($media->access('view', $user));
+  /**
+   * Test base denial.
+   *
+   * Media and file that are related to a single node that is denied should both
+   * similarly be denied.
+   */
+  public function testBaseNodeDeny() {
+    $this->passToModule([
+      'entities' => [
+        'node' => [$this->node->id()],
+      ],
+    ]);
+
+    $this->assertFalse($this->node->access($this->op));
+    $this->assertFalse($this->file->access($this->op));
+    $this->assertFalse($this->media->access($this->op));
+  }
+
+  /**
+   * The node should still be visible when the media is denied.
+   *
+   * However, the file should be denied (if no other media/node grants access).
+   */
+  public function testBaseMediaDeny() {
+    $this->passToModule([
+      'entities' => [
+        'media' => [$this->media->id()],
+      ],
+    ]);
+
+    $this->assertTrue($this->node->access($this->op));
+    $this->assertFalse($this->file->access($this->op));
+    $this->assertFalse($this->media->access($this->op));
+  }
+
+  /**
+   * Denying the file should deny the file.
+   *
+   * The media and node should remain visible.
+   */
+  public function testBaseFileDeny() {
+    $this->passToModule([
+      'entities' => [
+        'file' => [$this->file->id()]
+      ],
+    ]);
+
+    $this->assertTrue($this->node->access($this->op));
+    $this->assertFalse($this->file->access($this->op));
+    $this->assertTrue($this->media->access($this->op));
+  }
+
+  /**
+   * Test multiple nodes allowed.
+   */
+  public function testMultipleNodeAllAllowed() {
+    $this->passToModule();
+
+    $other_node = $this->createNode();
+    $other_media = $this->createMedia($this->file, $other_node);
+
+    $this->assertTrue($this->file->access($this->op));
+    $this->assertTrue($other_node->access($this->op));
+    $this->assertTrue($other_media->access($this->op));
+    $this->assertTrue($this->node->access($this->op));
+    $this->assertTrue($this->media->access($this->op));
+
+  }
+
+  /**
+   * Test one node allowing with one node denying.
+   *
+   * File should be allowed, and the media should be dependent on the node.
+   */
+  public function testMultipleNodeAllowed() {
+    $this->passToModule([
+      'entities' => [
+        'node' => [$this->node->id()],
+      ],
+    ]);
+
+    $other_node = $this->createNode();
+    $other_media = $this->createMedia($this->file, $other_node);
+
+    $this->assertTrue($this->file->access($this->op));
+    $this->assertTrue($other_node->access($this->op));
+    $this->assertTrue($other_media->access($this->op));
+    $this->assertFalse($this->node->access($this->op));
+    $this->assertFalse($this->media->access($this->op));
+
+  }
+
+  /**
+   * Test two nodes denying continues to deny.
+   */
+  public function testMultipleNodeDenied() {
+    $other_node = $this->createNode();
+    $other_media = $this->createMedia($this->file, $other_node);
+
+    $this->passToModule([
+      'entities' => [
+        'node' => [
+          $this->node->id(),
+          $other_node->id(),
+        ],
+      ],
+    ]);
+
+    $this->assertFalse($this->file->access($this->op));
+    $this->assertFalse($other_node->access($this->op));
+    $this->assertFalse($other_media->access($this->op));
+    $this->assertFalse($this->node->access($this->op));
+    $this->assertFalse($this->media->access($this->op));
+  }
+
+  /**
+   * Test multiple media, both being allowed.
+   *
+   * Everything should be allowed.
+   */
+  public function testMultipleMediaAllowed() {
+    $this->passToModule();
+
+    $other_media = $this->createMedia($this->file, $this->node);
+
+    $this->assertTrue($this->file->access($this->op));
+    $this->assertTrue($other_media->access($this->op));
+    $this->assertTrue($this->node->access($this->op));
+    $this->assertTrue($this->media->access($this->op));
+  }
+
+  /**
+   * Test one node allowing but its media denying and vice-versa, with one file.
+   *
+   * No path to allow the file, should be denied.
+   */
+  public function testMultipleStageDeny() {
+    $other_media = $this->createMedia($this->file, $this->node);
+    $this->passToModule([
+      'entities' => [
+        'node' => [$this->node->id()],
+        'media' => [$other_media->id()],
+      ],
+    ]);
+
+    $this->assertFalse($this->file->access($this->op));
+    $this->assertFalse($other_media->access($this->op));
+    $this->assertFalse($this->node->access($this->op));
+    $this->assertFalse($this->media->access($this->op));
+  }
+
+  /**
+   * Test one node allowing with two media, one denied.
+   *
+   * Path from to allowed node, should be allowed.
+   */
+  public function testBranch() {
+    $other_media = $this->createMedia($this->file, $this->node);
+    $this->passToModule([
+      'entities' => [
+        'media' => [$this->media->id()],
+      ],
+    ]);
+
+    $this->assertTrue($this->file->access($this->op));
+    $this->assertTrue($other_media->access($this->op));
+    $this->assertTrue($this->node->access($this->op));
+    $this->assertFalse($this->media->access($this->op));
   }
 }

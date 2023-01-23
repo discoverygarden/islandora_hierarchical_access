@@ -3,3 +3,5 @@ name: IHA Test Access Module
 core_version_requirement: ^9
 type: module
 hidden: true
+dependencies:
+  - islandora_hierarchical_access:islandora_hierarchical_access
