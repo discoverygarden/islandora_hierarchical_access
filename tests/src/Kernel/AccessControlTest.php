@@ -11,6 +11,8 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * Test various access control patterns.
+ *
+ * @group islandora_hierarchical_access
  */
 class AccessControlTest extends AbstractKernelTestBase {
   const KEY = 'islandora_hierarchical_access_access_control_test_key';

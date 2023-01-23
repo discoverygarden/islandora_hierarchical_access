@@ -4,6 +4,8 @@ namespace Drupal\Tests\islandora_hierarchical_access\Kernel;
 
 /**
  * Test LUT generation and CUD hook triggering.
+ *
+ * @group islandora_hierarchical_access
  */
 class LUTGeneratorAndCUDHookTest extends AbstractKernelTestBase {
 

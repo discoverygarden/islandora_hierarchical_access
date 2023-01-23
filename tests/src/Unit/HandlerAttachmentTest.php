@@ -12,6 +12,8 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * Unit test attachment of our handlers to entity types.
+ *
+ * @group islandora_hierarchical_access
  */
 class HandlerAttachmentTest extends UnitTestCase {
 
