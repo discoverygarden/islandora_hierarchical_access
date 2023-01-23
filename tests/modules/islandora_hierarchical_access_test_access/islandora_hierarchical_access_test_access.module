@@ -21,7 +21,7 @@ function islandora_hierarchical_access_test_access_entity_access(EntityInterface
   $entity_type = $entity->getEntityTypeId();
 
   return AccessResult::forbiddenIf(
-    (array_key_exists($entity_type, $settings['entities']) && in_array($entity->id(), $settings['entities'][$entity_type])) ||
-    in_array($op, $settings['ops']) ||
-    in_array($account->id(), $settings['accounts']), "Denied in testing module.");
+    (array_key_exists($entity_type, $settings['entities']) && in_array($entity->id(), $settings['entities'][$entity_type])),
+    "Denied in testing module."
+  );
 }
