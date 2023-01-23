@@ -9,17 +9,46 @@ use Drupal\node\NodeInterface;
 use Drupal\Tests\test_support\Traits\Support\InteractsWithAuthentication;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
+/**
+ * Test various access control patterns.
+ */
 class AccessControlTest extends AbstractKernelTestBase {
   const KEY = 'islandora_hierarchical_access_access_control_test_key';
 
   use UserCreationTrait;
   use InteractsWithAuthentication;
 
+  /**
+   * Node setup per test.
+   *
+   * @var \Drupal\node\NodeInterface
+   */
   protected NodeInterface $node;
+
+  /**
+   * Media setup per test, relating the $node to the $file.
+   *
+   * @var \Drupal\media\MediaInterface
+   */
   protected MediaInterface $media;
+
+  /**
+   * File setup per test.
+   *
+   * @var \Drupal\file\FileInterface
+   */
   protected FileInterface $file;
+
+  /**
+   * User setup per test.
+   *
+   * @var \Drupal\Core\Session\AccountInterface|\Drupal\user\UserInterface
+   */
   protected AccountInterface $user;
 
+  /**
+   * {@inheritDoc}
+   */
   public function setUp() {
     parent::setUp();
     $this->enableModules([
@@ -29,24 +58,23 @@ class AccessControlTest extends AbstractKernelTestBase {
     $this->node = $this->createNode();
     $this->file = $this->createFile();
     $this->media = $this->createMedia($this->file, $this->node);
-    $this->user = $this->setUpCurrentUser([], ['access content'],FALSE);
+    $this->user = $this->setUpCurrentUser([], ['access content'], FALSE);
     $this->op = 'view';
   }
 
-
-  protected function passToModule(array $data = []) {
+  /**
+   * Helper; pass data via "Settings" to our test module.
+   *
+   * @param array $data
+   *   An associative array containing:
+   *   - entities: An associative array of entity type names to entity IDs of
+   *     the given type to which access _should be denied_.
+   */
+  protected function passToModule(array $data = []) : void {
     $this->setSetting(
       static::KEY,
-      array_merge_recursive($data, [
-        'entities' => [
-          'file' => [],
-          'media' => [],
-          'node' => [],
-        ],
-        'ops' => [],
-        'accounts' => [],
-      ]
-    ));
+      array_merge_recursive($data, ['entities' => []])
+    );
   }
 
   /**
@@ -104,7 +132,7 @@ class AccessControlTest extends AbstractKernelTestBase {
   public function testBaseFileDeny() {
     $this->passToModule([
       'entities' => [
-        'file' => [$this->file->id()]
+        'file' => [$this->file->id()],
       ],
     ]);
 
@@ -230,4 +258,5 @@ class AccessControlTest extends AbstractKernelTestBase {
     $this->assertTrue($this->node->access($this->op));
     $this->assertFalse($this->media->access($this->op));
   }
+
 }

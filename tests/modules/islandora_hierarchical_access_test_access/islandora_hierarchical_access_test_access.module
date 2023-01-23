@@ -12,10 +12,6 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Tests\islandora_hierarchical_access\Kernel\AccessControlTest;
 
-function islandora_hierarchical_access_test_access_entity_load($asdf) {
-  file_put_contents('/opt/www/drupal/asdf.asdf', "blah" . "\n", FILE_APPEND);
-}
-
 /**
  * Implements hook_entity_access().
  */
@@ -23,12 +19,6 @@ function islandora_hierarchical_access_test_access_entity_access(EntityInterface
   $settings = Settings::get(AccessControlTest::KEY);
 
   $entity_type = $entity->getEntityTypeId();
-
-  file_put_contents(
-    '/opt/www/drupal/asdf.asdf',
-    "$entity_type\n", //serialize([$entity->id(), $op]) . "\n",
-    FILE_APPEND
-  );
 
   return AccessResult::forbiddenIf(
     (array_key_exists($entity_type, $settings['entities']) && in_array($entity->id(), $settings['entities'][$entity_type])) ||

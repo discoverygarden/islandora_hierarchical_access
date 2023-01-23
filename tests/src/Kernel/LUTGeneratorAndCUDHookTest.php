@@ -2,9 +2,15 @@
 
 namespace Drupal\Tests\islandora_hierarchical_access\Kernel;
 
+/**
+ * Test LUT generation and CUD hook triggering.
+ */
 class LUTGeneratorAndCUDHookTest extends AbstractKernelTestBase {
 
   /**
+   * Helper; create and assert structure given a few entities.
+   *
+   * @phpcs:ignore Drupal.Commenting.FunctionComment.ReturnTypeSpaces, Drupal.Commenting.DocComment.SpacingBeforeTags
    * @return array{\Drupal\node\NodeInterface, \Drupal\file\FileInterface, \Drupal\media\MediaInterface}
    *   An array containing:
    *   - a node
@@ -23,25 +29,39 @@ class LUTGeneratorAndCUDHookTest extends AbstractKernelTestBase {
     return [$node, $file, $media];
   }
 
+  /**
+   * Test the deleting the node results in the relevant rows being removed.
+   */
   public function testDeleteNode() {
-    [$node, , ] = $this->testBasePopulation();
+    $node = $this->testBasePopulation()[0];
     $node->delete();
     $this->assertEmptyTraversable($this->lutResults());
   }
 
+  /**
+   * Test the deleting the file results in the relevant rows being removed.
+   */
   public function testDeleteFile() {
-    [, $file, ] = $this->testBasePopulation();
+    $file = $this->testBasePopulation()[1];
     $file->delete();
     $this->assertEmptyTraversable($this->lutResults());
   }
 
-  public function testDeleteMedia() {
-    [, , $media] = $this->testBasePopulation();
+  /**
+   * Test the deleting the media results in the relevant rows being removed.
+   */
+  public function testDeleteMedia() : void {
+    $media = $this->testBasePopulation()[2];
     $media->delete();
     $this->assertEmptyTraversable($this->lutResults());
   }
 
-  public function testUpdateMedia() {
+  /**
+   * Test that updating media reacts appropriately.
+   *
+   * Also, unassociated files do not influence the LUT.
+   */
+  public function testUpdateMedia() : void {
     [$node, $file, $media] = $this->testBasePopulation();
 
     $media->label = $this->randomString();
