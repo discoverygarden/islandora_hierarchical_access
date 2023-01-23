@@ -137,6 +137,7 @@ jobs:
       - name: Run PHPUnit tests (base)
         env:
           SIMPLETEST_BASE_URL: http://127.0.0.1
+          SIMPLETEST_DB: "pgsql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@postgres/${{ env.POSTGRES_DB}}"
         working-directory: ${{ env.DRUPAL_ROOT }}
         continue-on-error: ${{ matrix.experimental }}
         run: |
@@ -146,6 +147,7 @@ jobs:
       - name: Run PHPUnit tests (reporting deprecations)
         env:
           SIMPLETEST_BASE_URL: http://127.0.0.1
+          SIMPLETEST_DB: "pgsql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@postgres/${{ env.POSTGRES_DB}}"
         working-directory: ${{ env.DRUPAL_ROOT }}
         # XXX: A number of deprecation things in modules pulled in make a mess
         # presently... so let's just report 'em, for now.
