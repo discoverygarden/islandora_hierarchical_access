@@ -32,7 +32,11 @@ jobs:
     env:
       DRUPAL_EXTENSION_NAME: islandora_hierarchical_access
       COMPOSER_PACKAGE_NAME: discoverygarden/islandora_hierarchical_access
-      COMPOSER_PACKAGE_PREREQUISITES: ""
+      # XXX: Installation of the module is presently a little funky...
+      # "require-dev" doesn't quite do the trick, as it's only usable at the
+      # root-project level.
+      COMPOSER_PACKAGE_PREREQUISITES: >-
+        "drupal/test_support:^1"
       # Patches need to be publically accessible, presently (so no private PRs,
       # at present).
       COMPOSER_PATCHES: |-
