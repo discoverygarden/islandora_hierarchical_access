@@ -51,7 +51,7 @@ class AccessControlTest extends AbstractKernelTestBase {
   /**
    * {@inheritDoc}
    */
-  public function setUp() {
+  public function setUp() : void {
     parent::setUp();
     $this->enableModules([
       'islandora_hierarchical_access_test_access',
