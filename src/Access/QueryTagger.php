@@ -3,8 +3,6 @@
 namespace Drupal\islandora_hierarchical_access\Access;
 
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Database\Query\AlterableInterface;
-use Drupal\Core\Database\Query\Select;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
