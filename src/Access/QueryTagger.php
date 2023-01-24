@@ -4,6 +4,7 @@ namespace Drupal\islandora_hierarchical_access\Access;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\AlterableInterface;
+use Drupal\Core\Database\Query\Select;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -85,8 +86,11 @@ class QueryTagger {
 
   /**
    * Tag file_access queries.
+   *
+   * @param \Drupal\Core\Database\Query\SelectInterface $query
+   *   The query to be tagged.
    */
-  public function tagFile(AlterableInterface $query) {
+  public function tagFile(SelectInterface $query) : void {
     if ("{$this->getBaseMediaQuery()}" === "{$this->getTaggedMediaQuery()}") {
       // No relevant tagging for which to account.
       return;
@@ -186,14 +190,14 @@ class QueryTagger {
    * are created; however, constraining results is much easier with "AND"... so
    * let's rework the query object to make it so.
    *
-   * @param \Drupal\Core\Database\Query\AlterableInterface $query
-   *   The query with which to deal.
+   * @param \Drupal\Core\Database\Query\SelectInterface $query
+   *   The query to be tagged.
    *
-   * @return \Drupal\Core\Database\Query\AlterableInterface
+   * @return \Drupal\Core\Database\Query\SelectInterface
    *   The query which has been dealt with... should be the same query, just
    *   returning for (potential) convenience.
    */
-  protected function andifyQuery(AlterableInterface $query): AlterableInterface {
+  protected function andifyQuery(SelectInterface $query): SelectInterface {
     $original_conditions =& $query->conditions();
     if ($original_conditions['#conjunction'] === 'AND') {
       // Nothing to do...
@@ -219,8 +223,11 @@ class QueryTagger {
 
   /**
    * Tag media_access queries.
+   *
+   * @param \Drupal\Core\Database\Query\SelectInterface $query
+   *   The query to be tagged.
    */
-  public function tagMedia(AlterableInterface $query) {
+  public function tagMedia(SelectInterface $query) : void {
     if ("{$this->getBaseNodeQuery()}" === "{$this->getTaggedNodeQuery()}") {
       // No relevant tagging for which to account.
       return;

@@ -4,6 +4,7 @@ namespace Drupal\islandora_hierarchical_access;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Access\AccessResultReasonInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
@@ -153,7 +154,7 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
    *   The result of the access check as an object.
    */
   protected function doCheck(EntityInterface $entity, string $operation, AccountInterface $account) : AccessResultInterface {
-    /** @var \Drupal\Core\Access\AccessResultReasonInterface $result */
+    /** @var \Drupal\Core\Access\AccessResultNeutral $result */
     $result = AccessResult::neutral()
       ->addCacheableDependency($entity)
       ->addCacheableDependency($account);
@@ -162,8 +163,10 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
 
     if (empty($entity_ids)) {
       // Failed to find any node: We have no opinion.
-      return $result->setReason("No candidate target entities found.")
-        ->addCacheTags($this->getEmptyCacheTags());
+      /** @var \Drupal\Core\Access\AccessResultNeutral $to_return */
+      $to_return = $result->setReason("No candidate target entities found.");
+      $to_return->addCacheTags($this->getEmptyCacheTags());
+      return $to_return;
     }
 
     $reasons = [];
@@ -178,26 +181,37 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
         continue;
       }
 
+      /** @var \Drupal\Core\Access\AccessResultInterface|\Drupal\Core\Access\AccessResultReasonInterface $entity_access */
       $entity_access = $loadedEntity->access($operation, $account, TRUE);
       if ($entity_access->isAllowed()) {
         // Found a node which is viewable: Let it through.
-        return $result->orIf($entity_access)
-          ->addCacheableDependency($loadedEntity);
+        /** @var \Drupal\Core\Access\AccessResult $to_return */
+        $to_return = $result->orIf($entity_access);
+        $to_return->addCacheableDependency($loadedEntity);
+        return $to_return;
       }
-      else {
+      elseif ($entity_access instanceof AccessResultReasonInterface) {
         $reasons[] = strtr("Rejecting {type} {id} because provided reasoning: {reason}", [
           '{type}' => $this->targetType->id(),
           '{id}' => $id,
           '{reason}' => $entity_access->getReason(),
         ]);
       }
+      else {
+        $reasons[] = strtr("Rejecting {type} {id}.", [
+          '{type}' => $this->targetType->id(),
+          '{id}' => $id,
+        ]);
+      }
     }
 
     // Exhaustively search the nodes: Deny.
-    return $result->orIf(AccessResult::forbidden(strtr("Failed to find an entity allowing access: {reasoning}", [
+    /** @var \Drupal\Core\Access\AccessResult $to_return */
+    $to_return = $result->orIf(AccessResult::forbidden(strtr("Failed to find an entity allowing access: {reasoning}", [
       '{reasoning}' => implode(' ', $reasons),
-    ])))
-      ->addCacheTags($this->getEmptyCacheTags());
+    ])));
+    $to_return->addCacheTags($this->getEmptyCacheTags());
+    return $to_return;
   }
 
   /**

@@ -49,6 +49,13 @@ class AccessControlTest extends AbstractKernelTestBase {
   protected AccountInterface $user;
 
   /**
+   * The default "operation" with which to deal with access.
+   *
+   * @var string
+   */
+  protected string $op;
+
+  /**
    * {@inheritDoc}
    */
   public function setUp() : void {
