@@ -105,10 +105,9 @@ class AccessControlTest extends AbstractKernelTestBase {
    */
   public function testBaseDownloadAccess() {
     $this->passToModule();
-    $this->op = 'download';
-    $this->assertTrue($this->node->access($this->op));
-    $this->assertTrue($this->file->access($this->op));
-    $this->assertTrue($this->media->access($this->op));
+    $this->assertTrue($this->node->access('view'));
+    $this->assertTrue($this->file->access('download'));
+    $this->assertTrue($this->media->access('download'));
   }
 
   /**

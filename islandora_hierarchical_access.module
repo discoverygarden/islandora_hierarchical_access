@@ -110,13 +110,3 @@ function islandora_hierarchical_access_query_media_access_alter(AlterableInterfa
   Drupal::service('islandora_hierarchical_access.query_tagger')
     ->tagMedia($query);
 }
-
-/**
- * Implements hook_ENTITY_TYPE_access() for node entities.
- */
-function islandora_hierarchical_access_node_access($entity, $op, $user) {
-  if ($op == 'download') {
-    return $entity->access('view', $user, TRUE);
-  }
-  return AccessResult::neutral("No opinion.");
-}

@@ -23,6 +23,7 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
   const PROPERTY_NAME__COLUMN = self::NAME . '_column';
   const PROPERTY_NAME__TARGET_COLUMN = self::NAME . '_target_column';
   const PROPERTY_NAME__TARGET_TYPE = self::NAME . '_target_type';
+  const PROPERTY_NAME__TARGET_OP_MAP = self::NAME . '_op_map';
 
   /**
    * {@inheritDoc}
@@ -39,7 +40,10 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
         $entity_type->setHandlerClass(static::NAME, static::class)
           ->set(static::PROPERTY_NAME__COLUMN, 'mid')
           ->set(static::PROPERTY_NAME__TARGET_COLUMN, 'nid')
-          ->set(static::PROPERTY_NAME__TARGET_TYPE, 'node');
+          ->set(static::PROPERTY_NAME__TARGET_TYPE, 'node')
+          ->set(static::PROPERTY_NAME__TARGET_OP_MAP, [
+            'download' => 'view',
+          ]);
       }
     }
   }
@@ -87,6 +91,13 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
   protected string $targetColumn;
 
   /**
+   * A mapping of operations which should be mapped as other operations.
+   *
+   * @var array
+   */
+  protected array $opMap;
+
+  /**
    * Constructor.
    */
   public function __construct(
@@ -94,7 +105,8 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
     $ops,
     EntityStorageInterface $storage,
     $column,
-    $target_column
+    $target_column,
+    array $op_map
   ) {
     $this->database = $database;
     $this->ops = $ops;
@@ -102,6 +114,7 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
     $this->targetType = $storage->getEntityType();
     $this->column = $column;
     $this->targetColumn = $target_column;
+    $this->opMap = $op_map;
   }
 
   /**
@@ -115,7 +128,8 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
       $entity_type->get(static::PROPERTY_NAME__OPS) ?? ['view', 'download'],
       $entity_type_manager->getStorage($entity_type->get(static::PROPERTY_NAME__TARGET_TYPE)),
       $entity_type->get(static::PROPERTY_NAME__COLUMN),
-      $entity_type->get(static::PROPERTY_NAME__TARGET_COLUMN)
+      $entity_type->get(static::PROPERTY_NAME__TARGET_COLUMN),
+      $entity_type->get(static::PROPERTY_NAME__TARGET_OP_MAP) ?? []
     );
   }
 
@@ -169,6 +183,8 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
       return $to_return;
     }
 
+    $mapped_op = $this->opMap[$operation] ?? $operation;
+
     $reasons = [];
     foreach ($entity_ids as $id) {
       $loadedEntity = $this->storage->load($id);
@@ -182,7 +198,7 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
       }
 
       /** @var \Drupal\Core\Access\AccessResultInterface|\Drupal\Core\Access\AccessResultReasonInterface $entity_access */
-      $entity_access = $loadedEntity->access($operation, $account, TRUE);
+      $entity_access = $loadedEntity->access($mapped_op, $account, TRUE);
       if ($entity_access->isAllowed()) {
         // Found a node which is viewable: Let it through.
         /** @var \Drupal\Core\Access\AccessResult $to_return */
