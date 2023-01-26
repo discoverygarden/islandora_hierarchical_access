@@ -122,8 +122,9 @@ class HandlerAttachmentTest extends UnitTestCase {
           [EntityAccessHandler::PROPERTY_NAME__TARGET_COLUMN, 'nid'],
           [EntityAccessHandler::PROPERTY_NAME__TARGET_TYPE, 'node'],
           [EntityAccessHandler::PROPERTY_NAME__TARGET_OP_MAP, [
-            'download' => 'view',
-          ]],
+              'download' => 'view',
+            ]
+          ],
         ],
       ],
     ];
