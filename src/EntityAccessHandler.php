@@ -4,8 +4,8 @@ namespace Drupal\islandora_hierarchical_access;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Access\AccessResultReasonInterface;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Entity\EntityHandlerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -17,18 +17,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Inherited entity access handler.
  */
-class EntityAccessHandler implements EntityHandlerInterface {
+class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEntityHandlerInterface {
   const NAME = 'islandora_hierarchical_access_access';
   const PROPERTY_NAME__OPS = self::NAME . '_operations';
   const PROPERTY_NAME__COLUMN = self::NAME . '_column';
   const PROPERTY_NAME__TARGET_COLUMN = self::NAME . '_target_column';
   const PROPERTY_NAME__TARGET_TYPE = self::NAME . '_target_type';
+  const PROPERTY_NAME__TARGET_OP_MAP = self::NAME . '_op_map';
 
   /**
-   * Attach entity access handler to the targets.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
-   *   An entity type to which to attempt to attach.
+   * {@inheritDoc}
    */
   public static function attach(EntityTypeInterface $entity_type) : void {
     if (!$entity_type->hasHandlerClass(static::NAME)) {
@@ -42,7 +40,10 @@ class EntityAccessHandler implements EntityHandlerInterface {
         $entity_type->setHandlerClass(static::NAME, static::class)
           ->set(static::PROPERTY_NAME__COLUMN, 'mid')
           ->set(static::PROPERTY_NAME__TARGET_COLUMN, 'nid')
-          ->set(static::PROPERTY_NAME__TARGET_TYPE, 'node');
+          ->set(static::PROPERTY_NAME__TARGET_TYPE, 'node')
+          ->set(static::PROPERTY_NAME__TARGET_OP_MAP, [
+            'download' => 'view',
+          ]);
       }
     }
   }
@@ -90,6 +91,13 @@ class EntityAccessHandler implements EntityHandlerInterface {
   protected string $targetColumn;
 
   /**
+   * A mapping of operations which should be mapped as other operations.
+   *
+   * @var array
+   */
+  protected array $opMap;
+
+  /**
    * Constructor.
    */
   public function __construct(
@@ -97,7 +105,8 @@ class EntityAccessHandler implements EntityHandlerInterface {
     $ops,
     EntityStorageInterface $storage,
     $column,
-    $target_column
+    $target_column,
+    array $op_map
   ) {
     $this->database = $database;
     $this->ops = $ops;
@@ -105,6 +114,7 @@ class EntityAccessHandler implements EntityHandlerInterface {
     $this->targetType = $storage->getEntityType();
     $this->column = $column;
     $this->targetColumn = $target_column;
+    $this->opMap = $op_map;
   }
 
   /**
@@ -118,22 +128,13 @@ class EntityAccessHandler implements EntityHandlerInterface {
       $entity_type->get(static::PROPERTY_NAME__OPS) ?? ['view', 'download'],
       $entity_type_manager->getStorage($entity_type->get(static::PROPERTY_NAME__TARGET_TYPE)),
       $entity_type->get(static::PROPERTY_NAME__COLUMN),
-      $entity_type->get(static::PROPERTY_NAME__TARGET_COLUMN)
+      $entity_type->get(static::PROPERTY_NAME__TARGET_COLUMN),
+      $entity_type->get(static::PROPERTY_NAME__TARGET_OP_MAP) ?? []
     );
   }
 
   /**
-   * Perform the access check.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity being checked for access.
-   * @param string $operation
-   *   The operation being checked for access.
-   * @param \Drupal\Core\Session\AccountInterface $account
-   *   The account wanting to perform the operation.
-   *
-   * @return \Drupal\Core\Access\AccessResultInterface
-   *   The access result object.
+   * {@inheritDoc}
    */
   public function check(EntityInterface $entity, string $operation, AccountInterface $account) : AccessResultInterface {
     if (!in_array($operation, $this->ops, TRUE)) {
@@ -167,7 +168,7 @@ class EntityAccessHandler implements EntityHandlerInterface {
    *   The result of the access check as an object.
    */
   protected function doCheck(EntityInterface $entity, string $operation, AccountInterface $account) : AccessResultInterface {
-    /** @var \Drupal\Core\Access\AccessResultReasonInterface $result */
+    /** @var \Drupal\Core\Access\AccessResultNeutral $result */
     $result = AccessResult::neutral()
       ->addCacheableDependency($entity)
       ->addCacheableDependency($account);
@@ -176,9 +177,13 @@ class EntityAccessHandler implements EntityHandlerInterface {
 
     if (empty($entity_ids)) {
       // Failed to find any node: We have no opinion.
-      return $result->setReason("No candidate target entities found.")
-        ->addCacheTags($this->getEmptyCacheTags());
+      /** @var \Drupal\Core\Access\AccessResultNeutral $to_return */
+      $to_return = $result->setReason("No candidate target entities found.");
+      $to_return->addCacheTags($this->getEmptyCacheTags());
+      return $to_return;
     }
+
+    $mapped_op = $this->opMap[$operation] ?? $operation;
 
     $reasons = [];
     foreach ($entity_ids as $id) {
@@ -192,26 +197,37 @@ class EntityAccessHandler implements EntityHandlerInterface {
         continue;
       }
 
-      $entity_access = $loadedEntity->access($operation, $account, TRUE);
+      /** @var \Drupal\Core\Access\AccessResultInterface|\Drupal\Core\Access\AccessResultReasonInterface $entity_access */
+      $entity_access = $loadedEntity->access($mapped_op, $account, TRUE);
       if ($entity_access->isAllowed()) {
         // Found a node which is viewable: Let it through.
-        return $result->orIf($entity_access)
-          ->addCacheableDependency($loadedEntity);
+        /** @var \Drupal\Core\Access\AccessResult $to_return */
+        $to_return = $result->orIf($entity_access);
+        $to_return->addCacheableDependency($loadedEntity);
+        return $to_return;
       }
-      else {
+      elseif ($entity_access instanceof AccessResultReasonInterface) {
         $reasons[] = strtr("Rejecting {type} {id} because provided reasoning: {reason}", [
           '{type}' => $this->targetType->id(),
           '{id}' => $id,
           '{reason}' => $entity_access->getReason(),
         ]);
       }
+      else {
+        $reasons[] = strtr("Rejecting {type} {id}.", [
+          '{type}' => $this->targetType->id(),
+          '{id}' => $id,
+        ]);
+      }
     }
 
     // Exhaustively search the nodes: Deny.
-    return $result->orIf(AccessResult::forbidden(strtr("Failed to find an entity allowing access: {reasoning}", [
+    /** @var \Drupal\Core\Access\AccessResult $to_return */
+    $to_return = $result->orIf(AccessResult::forbidden(strtr("Failed to find an entity allowing access: {reasoning}", [
       '{reasoning}' => implode(' ', $reasons),
-    ])))
-      ->addCacheTags($this->getEmptyCacheTags());
+    ])));
+    $to_return->addCacheTags($this->getEmptyCacheTags());
+    return $to_return;
   }
 
   /**

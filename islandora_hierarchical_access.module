@@ -37,7 +37,7 @@ function islandora_hierarchical_access_entity_insert(EntityInterface $entity) : 
   $entity_type_manager = \Drupal::service('entity_type.manager');
   $entity_type_id = $entity->getEntityTypeId();
   if ($entity_type_manager->hasHandler($entity_type_id, EntityCUDHandler::NAME)) {
-    /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandler $handler */
+    /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandlerInterface $handler */
     $handler = $entity_type_manager->getHandler($entity_type_id, EntityCUDHandler::NAME);
     $handler->create($entity);
   }
@@ -51,7 +51,7 @@ function islandora_hierarchical_access_entity_update(EntityInterface $entity) : 
   $entity_type_manager = \Drupal::service('entity_type.manager');
   $entity_type_id = $entity->getEntityTypeId();
   if ($entity_type_manager->hasHandler($entity_type_id, EntityCUDHandler::NAME)) {
-    /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandler $handler */
+    /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandlerInterface $handler */
     $handler = $entity_type_manager->getHandler($entity_type_id, EntityCUDHandler::NAME);
     $handler->update($entity);
   }
@@ -65,7 +65,7 @@ function islandora_hierarchical_access_entity_delete(EntityInterface $entity) : 
   $entity_type_manager = \Drupal::service('entity_type.manager');
   $entity_type_id = $entity->getEntityTypeId();
   if ($entity_type_manager->hasHandler($entity_type_id, EntityCUDHandler::NAME)) {
-    /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandler $handler */
+    /** @var \Drupal\islandora_hierarchical_access\EntityCUDHandlerInterface $handler */
     $handler = $entity_type_manager->getHandler($entity_type_id, EntityCUDHandler::NAME);
     $handler->delete($entity);
   }
@@ -83,7 +83,7 @@ function islandora_hierarchical_access_entity_access(
   $entity_type_manager = \Drupal::service('entity_type.manager');
   $entity_type_id = $entity->getEntityTypeId();
   if ($entity_type_manager->hasHandler($entity_type_id, EntityAccessHandler::NAME)) {
-    /** @var \Drupal\islandora_hierarchical_access\EntityAccessHandler $handler */
+    /** @var \Drupal\islandora_hierarchical_access\EntityAccessHandlerInterface $handler */
     $handler = $entity_type_manager->getHandler($entity_type_id, EntityAccessHandler::NAME);
     return $handler->check(
       $entity,

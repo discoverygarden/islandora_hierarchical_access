@@ -1,3 +1,4 @@
+---
 name: Auto Semver
 on:
   pull_request_target:
@@ -11,15 +12,8 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
-      - name: Checkout Auto Semver Action Repo
-        uses: actions/checkout@v2
-        with:
-          repository: discoverygarden/auto-semver
-          ref: v1
-          token: ${{ secrets.GITHUB_TOKEN }}
-          path: .github/actions/auto-semver
       - name: Run Auto Semver
-        uses: ./.github/actions/auto-semver
+        uses: discoverygarden/auto-semver@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           prefix: v

@@ -1,0 +1,8 @@
+---
+name: IHA Test Access Module
+description: "Helper module for passing info from the test class for evaluation via hook implementations."
+core_version_requirement: ^9
+type: module
+hidden: true
+dependencies:
+  - islandora_hierarchical_access:islandora_hierarchical_access

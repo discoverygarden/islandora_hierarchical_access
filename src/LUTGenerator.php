@@ -113,7 +113,7 @@ class LUTGenerator implements LUTGeneratorInterface {
     if ($this->uniqueFileFields === NULL) {
       $this->uniqueFileFields = [];
       foreach ($this->getFileFields() as $field) {
-        $name = $field->get('field_name');
+        $name = $field->getName();
         if (!in_array($name, $this->uniqueFileFields)) {
           $this->uniqueFileFields[] = $name;
         }

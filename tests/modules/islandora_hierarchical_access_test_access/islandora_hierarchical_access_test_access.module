@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Test module for probing access control.
+ */
+
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Site\Settings;
+use Drupal\Tests\islandora_hierarchical_access\Kernel\AccessControlTest;
+
+/**
+ * Implements hook_entity_access().
+ */
+function islandora_hierarchical_access_test_access_entity_access(EntityInterface $entity, string $op, AccountInterface $account) : AccessResultInterface {
+  $settings = Settings::get(AccessControlTest::KEY);
+
+  $entity_type = $entity->getEntityTypeId();
+
+  return AccessResult::forbiddenIf(
+    (array_key_exists($entity_type, $settings['entities']) && in_array($entity->id(), $settings['entities'][$entity_type])),
+    "Denied in testing module."
+  );
+}
