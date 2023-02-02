@@ -128,6 +128,9 @@ class QueryTagger {
   /**
    * Get the base media query.
    *
+   * @param string $field
+   *   The field to get.
+   *
    * @return \Drupal\Core\Database\Query\SelectInterface
    *   The base media query.
    */
@@ -145,6 +148,8 @@ class QueryTagger {
    * @param bool $tagged
    *   TRUE if the base table should be tagged for access control; otherwise,
    *   FALSE.
+   * @param string $field
+   *   The field to get.
    *
    * @return \Drupal\Core\Database\Query\SelectInterface
    *   The media query.
