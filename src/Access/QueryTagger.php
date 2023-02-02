@@ -183,8 +183,6 @@ class QueryTagger {
     return $this->taggedMediaQuery;
   }
 
-
-
   /**
    * Tag media_access queries.
    *

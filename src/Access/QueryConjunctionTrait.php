@@ -46,4 +46,20 @@ trait QueryConjunctionTrait {
 
     return $query;
   }
+
+  /**
+   * Deprecated method name.
+   *
+   * @pbpcs:ignore Drupal.Commenting.DocComment.SpacingBeforeTags - Additional tags cause whatever sniffs to break.
+   * @phpcs:disable Drupal.Commenting.Deprecated.DeprecatedWrongSeeUrlFormat
+   *   We are not a project on d.o, so there's no applicable URL.
+   * @deprecated in project:1.2.0 and is removed from project:2.0.0. Deprecated in
+   *   favor of the static and better-named ::conjunctionQuery() method.
+   * @see \Drupal\islandora_hierarchical_access\Access\QueryConjunctionTrait::conjunctionQuery()
+   * @phpcs:enable Drupal.Commenting.Deprecated.DeprecatedWrongSeeUrlFormat
+   */
+  protected function andifyQuery(SelectInterface $query) : SelectInterface {
+    return static::conjunctionQuery($query);
+  }
+
 }
