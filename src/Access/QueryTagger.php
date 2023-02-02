@@ -13,6 +13,8 @@ use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
  */
 class QueryTagger {
 
+  use QueryConjunctionTrait;
+
   /**
    * The database connection service.
    *
@@ -94,7 +96,7 @@ class QueryTagger {
       return;
     }
 
-    $this->andifyQuery($query);
+    static::conjunctionQuery($query);
 
     $file_tables = $this->entityTypeManager->getStorage('file')
       ->getTableMapping()
@@ -181,43 +183,7 @@ class QueryTagger {
     return $this->taggedMediaQuery;
   }
 
-  /**
-   * Ensure the given query represents an "AND" to which we can attach filters.
-   *
-   * Queries can select either "OR" or "AND" as their base conjunction when they
-   * are created; however, constraining results is much easier with "AND"... so
-   * let's rework the query object to make it so.
-   *
-   * @param \Drupal\Core\Database\Query\SelectInterface $query
-   *   The query to be tagged.
-   *
-   * @return \Drupal\Core\Database\Query\SelectInterface
-   *   The query which has been dealt with... should be the same query, just
-   *   returning for (potential) convenience.
-   */
-  protected function andifyQuery(SelectInterface $query): SelectInterface {
-    $original_conditions =& $query->conditions();
-    if ($original_conditions['#conjunction'] === 'AND') {
-      // Nothing to do...
-      return $query;
-    }
 
-    $new_or = $query->orConditionGroup();
-
-    $original_conditions_copy = $original_conditions;
-    unset($original_conditions_copy['#conjunction']);
-    foreach ($original_conditions_copy as $orig_cond) {
-      $new_or->condition($orig_cond['field'], $orig_cond['value'] ?? NULL,
-        $orig_cond['operator'] ?? '=');
-    }
-
-    $new_and = $query->andConditionGroup()
-      ->condition($new_or);
-
-    $original_conditions = $new_and->conditions();
-
-    return $query;
-  }
 
   /**
    * Tag media_access queries.
@@ -231,7 +197,7 @@ class QueryTagger {
       return;
     }
 
-    $this->andifyQuery($query);
+    $this->conjunctionQuery($query);
 
     $media_tables = $this->entityTypeManager->getStorage('media')
       ->getTableMapping()
