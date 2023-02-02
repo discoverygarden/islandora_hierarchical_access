@@ -121,7 +121,7 @@ jobs:
 
           composer config minimum-stability dev
           composer require ${{ env.COMPOSER_PACKAGE_PREREQUISITES }} \
-            "${{ env.COMPOSER_PACKAGE_NAME }}:dev-${{ github.sha }}"
+            "${{ env.COMPOSER_PACKAGE_NAME }}:dev-main#${{ github.sha }}"
 
           # Install the module.
           drush --uri=http://localhost --yes -v en ${{ env.DRUPAL_EXTENSION_NAME }}
