@@ -131,9 +131,9 @@ class QueryTagger {
    * @return \Drupal\Core\Database\Query\SelectInterface
    *   The base media query.
    */
-  protected function getBaseMediaQuery(): SelectInterface {
+  protected function getBaseMediaQuery($field = 'fid'): SelectInterface {
     if ($this->baseMediaQuery === NULL) {
-      $this->baseMediaQuery = $this->getMediaQuery(FALSE);
+      $this->baseMediaQuery = $this->getMediaQuery(FALSE, $field);
     }
 
     return $this->baseMediaQuery;
