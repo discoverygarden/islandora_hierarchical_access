@@ -149,7 +149,7 @@ class QueryTagger {
    * @return \Drupal\Core\Database\Query\SelectInterface
    *   The media query.
    */
-  protected function getMediaQuery($tagged = FALSE): SelectInterface {
+  protected function getMediaQuery($tagged = FALSE, $field = 'fid'): SelectInterface {
     $query = $this->database->select('media', 'm')
       ->addTag('media_access')
       ->addMetaData('base_table', 'media');
@@ -162,7 +162,7 @@ class QueryTagger {
 
     $lut_alias = $query->join(LUTGeneratorInterface::TABLE_NAME, 'lut',
       '%alias.mid = m.mid');
-    $query->fields($lut_alias, ['fid']);
+    $query->fields($lut_alias, [$field]);
 
     return $query;
   }
