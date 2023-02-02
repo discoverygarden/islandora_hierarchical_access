@@ -195,7 +195,7 @@ class QueryTagger {
       return;
     }
 
-    $this->conjunctionQuery($query);
+    static::conjunctionQuery($query);
 
     $media_tables = $this->entityTypeManager->getStorage('media')
       ->getTableMapping()
