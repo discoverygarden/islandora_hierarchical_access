@@ -1,4 +1,4 @@
-# Islandora Hieraarchical Access
+# Islandora Hierarchical Access
 
 Implements an access control model wherein:
 
