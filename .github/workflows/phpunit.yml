@@ -8,5 +8,5 @@ on:
 
 jobs:
   PHPUnit:
-    uses: discoverygarden/phpunit-action/.github/workflows/phpunit.yml@test_reusable
+    uses: discoverygarden/phpunit-action/.github/workflows/phpunit.yml@implementation
     secrets: inherit
