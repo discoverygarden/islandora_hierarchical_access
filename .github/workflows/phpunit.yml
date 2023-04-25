@@ -1,0 +1,12 @@
+---
+name: PHPUnit Tests
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  PHPUnit:
+    uses: discoverygarden/phpunit-action/.github/workflows/phpunit.yml@v1
+    secrets: inherit
