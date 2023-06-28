@@ -28,7 +28,7 @@ sudo -u www-data -- env -C $DRUPAL_ROOT \
 
 ## Maintainers/Sponsors
 
-* [discoverygarden](http://support.discoverygarden.ca)
+* [discoverygarden](http://www.discoverygarden.ca/)
 
 ## License
 [GPLv3](https://www.gnu.org/licenses/gpl-3.0.txt)
