@@ -26,6 +26,11 @@ sudo -u www-data -- env -C $DRUPAL_ROOT \
   --verbose "$DRUPAL_ROOT/modules/contrib/islandora_hierarchical_access"
 ```
 
+## Troubleshooting/Issues
+
+Having problems or solved a problem? Contact
+[discoverygarden](http://www.discoverygarden.ca/).
+
 ## Maintainers/Sponsors
 
 * [discoverygarden](http://www.discoverygarden.ca/)
