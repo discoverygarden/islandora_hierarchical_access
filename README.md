@@ -31,4 +31,4 @@ sudo -u www-data -- env -C $DRUPAL_ROOT \
 * [discoverygarden](http://support.discoverygarden.ca)
 
 ## License
-[GPLv2](https://www.gnu.org/licenses/gpl-3.0.txt)
+[GPLv3](https://www.gnu.org/licenses/gpl-3.0.txt)
