@@ -25,3 +25,15 @@ sudo -u www-data -- env -C $DRUPAL_ROOT \
   $DRUPAL_ROOT/vendor/bin/phpunit "--bootstrap=$DRUPAL_ROOT/core/tests/bootstrap.php" \
   --verbose "$DRUPAL_ROOT/modules/contrib/islandora_hierarchical_access"
 ```
+
+## Troubleshooting/Issues
+
+Having problems or solved a problem? Contact
+[discoverygarden](http://www.discoverygarden.ca/).
+
+## Maintainers/Sponsors
+
+* [discoverygarden](http://www.discoverygarden.ca/)
+
+## License
+[GPLv3](https://www.gnu.org/licenses/gpl-3.0.txt)
