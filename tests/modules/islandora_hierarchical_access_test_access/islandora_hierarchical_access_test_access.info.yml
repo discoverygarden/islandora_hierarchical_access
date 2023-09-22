@@ -1,7 +1,7 @@
 ---
 name: IHA Test Access Module
 description: "Helper module for passing info from the test class for evaluation via hook implementations."
-core_version_requirement: ^9
+core_version_requirement: ^9 || ^10
 type: module
 hidden: true
 dependencies:
