@@ -21,9 +21,9 @@ class HandlerAttachmentTest extends UnitTestCase {
   /**
    * Helper; build out a mock to verify things are called as expected.
    *
-   * XXX: Can't use the union in the in-code hint 'til PHP 8.
    * @return \Drupal\Core\Entity\EntityTypeInterface|\PHPUnit\Framework\MockObject\MockObject
    *   The mocked entity type object.
+   *   XXX: Can't use a union in the in-code hint 'til PHP 8.
    */
   protected function getEntityTypeMock(string $class, string $interface) : EntityTypeInterface {
     $builder = $this->getMockBuilder(EntityTypeInterface::class);
