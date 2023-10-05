@@ -9,7 +9,6 @@ use Drupal\islandora_hierarchical_access\EntityCUDHandler;
 use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
-use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * Unit test attachment of our handlers to entity types.
