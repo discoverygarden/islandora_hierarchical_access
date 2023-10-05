@@ -9,6 +9,7 @@ use Drupal\islandora_hierarchical_access\EntityCUDHandler;
 use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * Unit test attachment of our handlers to entity types.
@@ -19,8 +20,12 @@ class HandlerAttachmentTest extends UnitTestCase {
 
   /**
    * Helper; build out a mock to verify things are called as expected.
+   *
+   * XXX: Can't use the union in the in-code hint 'til PHP 8.
+   * @return \Drupal\Core\Entity\EntityTypeInterface&\PHPUnit\Framework\MockObject\MockObject
+   *   The mocked entity type object.
    */
-  protected function getEntityTypeMock(string $class, string $interface, $set_values = []) : EntityTypeInterface {
+  protected function getEntityTypeMock(string $class, string $interface) : EntityTypeInterface {
     $builder = $this->getMockBuilder(EntityTypeInterface::class);
     $mock = $builder->getMock();
 
@@ -37,14 +42,6 @@ class HandlerAttachmentTest extends UnitTestCase {
     $mock->expects($this->once())
       ->method('setHandlerClass')
       ->with($class::NAME, $class)
-      ->willReturnSelf();
-
-    $mock->expects($this->atLeastOnce())
-      ->method('set')
-      // XXX: We do not strictly care about the order of the different set
-      // calls; however, there does not appear to be a nice way to specify the
-      // set of things to hit in an arbitrary order.
-      ->withConsecutive(...$set_values)
       ->willReturnSelf();
 
     return $mock;
@@ -64,8 +61,75 @@ class HandlerAttachmentTest extends UnitTestCase {
    * @dataProvider attachmentProvider
    */
   public function testAttachments(string $class, string $interface, array $set_values = []) {
-    $type_mock = $this->getEntityTypeMock($class, $interface, $set_values);
+    $type_mock = $this->getEntityTypeMock($class, $interface);
+
+    $tracker = new class($set_values)  {
+
+      /**
+       * The originally passed values.
+       *
+       * @var array[]
+       */
+      protected array $values;
+
+      /**
+       * The originally passed values, rekeyed according to the first parameter.
+       *
+       * @var array[]
+       */
+      protected array $hashed;
+
+      /**
+       * Values that have been seen and matched.
+       *
+       * @var array[]
+       */
+      protected array $tracked = [];
+
+      /**
+       * Constructor.
+       */
+      public function __construct(array $values) {
+        $this->values = $values;
+        $this->hashed = array_column($this->values, NULL, 0);
+      }
+
+      /**
+       * Helper; facilitate the assertion that all params have been consumed.
+       *
+       * @return bool
+       *   TRUE if all values passed in the constructor appear to have been
+       *   checked in ::matches(); otherwise, FALSE.
+       */
+      public function isFullyConsumed() : bool {
+        return !array_diff_key($this->hashed, $this->tracked);
+      }
+
+      /**
+       * Track if the given value matches a set of values expected.
+       *
+       * @param array $other
+       *   A set of parameters passed to the `::set()` call.
+       */
+      public function matches(array $other) {
+        $key = $other[0];
+        if ($this->hashed[$key] === $other) {
+          $this->tracked[$key] = $other;
+        }
+      }
+
+    };
+
+    $type_mock->expects($this->any())
+      ->method('set')
+      ->willReturnCallback(function (...$params) use ($type_mock, $tracker) {
+        $tracker->matches($params);
+        return $type_mock;
+      });
+;
     [$class, 'attach']($type_mock);
+
+    $this->assertTrue($tracker->isFullyConsumed());
   }
 
   /**
@@ -78,7 +142,7 @@ class HandlerAttachmentTest extends UnitTestCase {
    *   - the values to be set on the type, which might conceptually considered
    *     parameters to the handler.
    */
-  public function attachmentProvider() {
+  public function attachmentProvider() : array {
     return [
       [
         EntityCUDHandler::class,
