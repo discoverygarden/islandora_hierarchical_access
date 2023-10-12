@@ -19,8 +19,12 @@ class HandlerAttachmentTest extends UnitTestCase {
 
   /**
    * Helper; build out a mock to verify things are called as expected.
+   *
+   * @return \Drupal\Core\Entity\EntityTypeInterface|\PHPUnit\Framework\MockObject\MockObject
+   *   The mocked entity type object.
+   *   XXX: Can't use a union in the in-code hint 'til PHP 8.
    */
-  protected function getEntityTypeMock(string $class, string $interface, $set_values = []) : EntityTypeInterface {
+  protected function getEntityTypeMock(string $class, string $interface) : EntityTypeInterface {
     $builder = $this->getMockBuilder(EntityTypeInterface::class);
     $mock = $builder->getMock();
 
@@ -37,14 +41,6 @@ class HandlerAttachmentTest extends UnitTestCase {
     $mock->expects($this->once())
       ->method('setHandlerClass')
       ->with($class::NAME, $class)
-      ->willReturnSelf();
-
-    $mock->expects($this->atLeastOnce())
-      ->method('set')
-      // XXX: We do not strictly care about the order of the different set
-      // calls; however, there does not appear to be a nice way to specify the
-      // set of things to hit in an arbitrary order.
-      ->withConsecutive(...$set_values)
       ->willReturnSelf();
 
     return $mock;
@@ -64,8 +60,20 @@ class HandlerAttachmentTest extends UnitTestCase {
    * @dataProvider attachmentProvider
    */
   public function testAttachments(string $class, string $interface, array $set_values = []) {
-    $type_mock = $this->getEntityTypeMock($class, $interface, $set_values);
+    $type_mock = $this->getEntityTypeMock($class, $interface);
+
+    $tracker = new HandlerAttachmentTracker($set_values);
+
+    $type_mock->expects($this->any())
+      ->method('set')
+      ->willReturnCallback(function (...$params) use ($type_mock, $tracker) {
+        $tracker->matches($params);
+        return $type_mock;
+      });
+
     [$class, 'attach']($type_mock);
+
+    $this->assertTrue($tracker->isFullyConsumed());
   }
 
   /**
@@ -78,7 +86,7 @@ class HandlerAttachmentTest extends UnitTestCase {
    *   - the values to be set on the type, which might conceptually considered
    *     parameters to the handler.
    */
-  public function attachmentProvider() {
+  public function attachmentProvider() : array {
     return [
       [
         EntityCUDHandler::class,
