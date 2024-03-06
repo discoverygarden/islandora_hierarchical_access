@@ -99,14 +99,14 @@ function islandora_hierarchical_access_entity_access(
  * Implements hook_query_TAG_alter() for file_access tagged queries.
  */
 function islandora_hierarchical_access_query_file_access_alter(AlterableInterface $query) : void {
-  Drupal::service('islandora_hierarchical_access.query_tagger')
-    ->tagFile($query);
+  \Drupal::service('islandora_hierarchical_access.query_tagger')
+    ->tagQuery($query->addMetaData('islandora_hierarchical_access_type', 'file'));
 }
 
 /**
  * Implements hook_query_TAG_alter() for media_access tagged queries.
  */
 function islandora_hierarchical_access_query_media_access_alter(AlterableInterface $query) : void {
-  Drupal::service('islandora_hierarchical_access.query_tagger')
-    ->tagMedia($query);
+  \Drupal::service('islandora_hierarchical_access.query_tagger')
+    ->tagQuery($query->addMetaData('islandora_hierarchical_access_type', 'media'));
 }
