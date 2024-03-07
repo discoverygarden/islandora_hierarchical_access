@@ -130,16 +130,18 @@ class QueryTagger implements ContainerInjectionInterface {
     ];
     while ($parent = ($parents[$parent ?? $type] ?? NULL)) {
       $parent_lut_column = $get_lut_column($parent);
-      $alias = "base_{$parent}";
-      $entity_select = $this->database->select($parent, $alias)
-        ->fields($alias, [substr($parent, 0, 1) . 'id'])
-        ->addTag('islandora_hierarchical_access_subquery')
+      $parent_alias = "base_{$parent}";
+      $parent_key = substr($parent, 0, 1) . 'id';
+      $entity_select = $this->database->select($parent, $parent_alias);
+      $entity_select->addExpression(1, "{$parent}_existence");
+      $entity_select->addTag('islandora_hierarchical_access_subquery')
         ->addTag("{$parent}_access")
-        ->addMetaData('base_table', $parent);
+        ->addMetaData('base_table', $parent)
+        ->where("lut.{$parent_lut_column} = {$parent_alias}.{$parent_key}");
 
       $this->moduleHandler->alter("query_{$parent}_access", $entity_select);
 
-      $existence->condition("lut.{$parent_lut_column}", $entity_select, 'IN');
+      $existence->exists($entity_select);
       $this->eventDispatcher->dispatch(new Event($parent, $query));
     }
   }
