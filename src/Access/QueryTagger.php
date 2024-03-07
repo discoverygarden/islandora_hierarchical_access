@@ -81,6 +81,7 @@ class QueryTagger implements ContainerInjectionInterface {
       $null_query = $this->database->select(LUTGeneratorInterface::TABLE_NAME, 'lut');
       $null_query->addExpression('1', 'ne');
       $null_query_or = $null_query->orConditionGroup();
+      $null_query->condition($null_query_or);
       $query->addMetaData('islandora_hierarchical_access_tagged_null_query_or', $null_query_or);
 
       // Test that where we _are_ making assertions, things are left in the LUT.
