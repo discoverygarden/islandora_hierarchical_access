@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\islandora_hierarchical_access\Event\Event;
 use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
+use Drupal\islandora_hierarchical_access\TaggedTargetsTrait;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -18,34 +19,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class QueryTagger implements ContainerInjectionInterface {
 
   use QueryConjunctionTrait;
-
-  /**
-   * Memoization for generated base media query.
-   *
-   * @var \Drupal\Core\Database\Query\SelectInterface|null
-   */
-  protected ?SelectInterface $baseMediaQuery = NULL;
-
-  /**
-   * Memoization for generated tagged media query.
-   *
-   * @var \Drupal\Core\Database\Query\SelectInterface|null
-   */
-  protected ?SelectInterface $taggedMediaQuery = NULL;
-
-  /**
-   * Memoization for the base node query.
-   *
-   * @var \Drupal\Core\Database\Query\SelectInterface|null
-   */
-  protected ?SelectInterface $baseNodeQuery = NULL;
-
-  /**
-   * Memoization for the tagged node query.
-   *
-   * @var \Drupal\Core\Database\Query\SelectInterface|null
-   */
-  protected ?SelectInterface $taggedNodeQuery = NULL;
+  use TaggedTargetsTrait;
 
   /**
    * Constructor.
@@ -94,23 +68,9 @@ class QueryTagger implements ContainerInjectionInterface {
     $storage = $this->entityTypeManager->getStorage($type);
     $tables = $storage->getTableMapping()->getTableNames();
 
-    $target_aliases = [];
-
     $tagged_table_aliases = $query->getMetaData('islandora_hierarchical_access_tagged_table_aliases') ?? [];
 
-    foreach ($query->getTables() as $info) {
-      if ($info['table'] instanceof SelectInterface) {
-        continue;
-      }
-      elseif (in_array($info['table'], $tables)) {
-        $key = (str_starts_with($info['table'], "{$type}__")) ? 'entity_id' : (substr($type, 0, 1) . "id");
-        $alias = $info['alias'];
-        if (!in_array($alias, $tagged_table_aliases)) {
-          $tagged_table_aliases[] = $alias;
-          $target_aliases[] = "{$alias}.{$key}";
-        }
-      }
-    }
+    $target_aliases = static::getTaggingTargets($query, $tagged_table_aliases, $tables, $type);
 
     if (empty($target_aliases)) {
       return;
@@ -123,18 +83,19 @@ class QueryTagger implements ContainerInjectionInterface {
     if (!$null_query_or) {
       // Test for existence in the LUT; otherwise, nothing to assert.
       $null_query = $this->database->select(LUTGeneratorInterface::TABLE_NAME, 'lut');
-      $null_query->addExpression('1');
+      $null_query->addExpression('1', 'ne');
       $null_query_or = $null_query->orConditionGroup();
       $query->addMetaData('islandora_hierarchical_access_tagged_null_query_or', $null_query_or);
 
       // Test that where we _are_ making assertions, things are left in the LUT.
       $existence = $this->database->select(LUTGeneratorInterface::TABLE_NAME, 'lut');
+      $existence->addExpression('1', 'le');
       $query->addMetaData('islandora_hierarchical_access_tagged_existence_query', $existence);
 
-      $all_or = $query->orConditionGroup();
-      $all_or->notExists($null_query);
-      $all_or->exists($existence);
-      $query->condition($all_or);
+      $query->condition($query->orConditionGroup()
+        ->notExists($null_query)
+        ->exists($existence)
+      );
     }
     else {
       $null_query_or = $query->getMetaData('islandora_hierarchical_access_tagged_null_query_or');
@@ -153,7 +114,7 @@ class QueryTagger implements ContainerInjectionInterface {
       '!field' => "lut.{$lut_column}",
       '!targets' => implode(', ', $target_aliases),
     ];
-    if ($type === 'file') {
+    if ($type !== 'node') {
       $null_query_or->where(strtr('!field IN (!targets)', $replacements));
       // File is nullable, for media not bearing files.
       $existence->where(strtr('!field IS NULL OR !field IN (!targets)', $replacements));
@@ -163,6 +124,8 @@ class QueryTagger implements ContainerInjectionInterface {
       $null_query_or->where($filter);
       $existence->where($filter);
     }
+
+    $this->eventDispatcher->dispatch(new Event($type, $query));
 
     $parents = [
       'file' => 'media',
@@ -180,9 +143,8 @@ class QueryTagger implements ContainerInjectionInterface {
       $this->moduleHandler->alter("query_{$parent}_access", $entity_select);
 
       $existence->condition("lut.{$parent_lut_column}", $entity_select, 'IN');
+      $this->eventDispatcher->dispatch(new Event($parent, $query));
     }
-
-    $this->eventDispatcher->dispatch(new Event($type, $query));
   }
 
 }

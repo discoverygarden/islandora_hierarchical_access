@@ -7,3 +7,6 @@ services:
       - '@entity_type.manager'
   islandora_hierarchical_access.query_tagger:
     class: '\Drupal\islandora_hierarchical_access\Access\QueryTagger'
+    factory: [null, 'create']
+    arguments:
+      - '@service_container'
