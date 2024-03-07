@@ -99,6 +99,11 @@ function islandora_hierarchical_access_entity_access(
  * Implements hook_query_TAG_alter() for file_access tagged queries.
  */
 function islandora_hierarchical_access_query_file_access_alter(AlterableInterface $query) : void {
+  if ($query->hasTag('islandora_hierarchical_access_subquery')) {
+    // We expect that things should be handled via our event instead.
+    return;
+  }
+  assert($query->getMetaData('islandora_hierarchical_access_tag_type') === NULL);
   \Drupal::service('islandora_hierarchical_access.query_tagger')
     ->tagQuery($query->addMetaData('islandora_hierarchical_access_tag_type', 'file'));
 }
@@ -107,6 +112,11 @@ function islandora_hierarchical_access_query_file_access_alter(AlterableInterfac
  * Implements hook_query_TAG_alter() for media_access tagged queries.
  */
 function islandora_hierarchical_access_query_media_access_alter(AlterableInterface $query) : void {
+  if ($query->hasTag('islandora_hierarchical_access_subquery')) {
+    // We expect that things should be handled via our event instead.
+    return;
+  }
+  assert($query->getMetaData('islandora_hierarchical_access_tag_type') === NULL);
   \Drupal::service('islandora_hierarchical_access.query_tagger')
     ->tagQuery($query->addMetaData('islandora_hierarchical_access_tag_type', 'media'));
 }
