@@ -53,7 +53,7 @@ class QueryTagger implements ContainerInjectionInterface {
    */
   public function tagQuery(SelectInterface $query) : void {
     $type = $query->getMetaData('islandora_hierarchical_access_tag_type');
-    if (!in_array($type, [/*'node',*/ 'media', 'file'])) {
+    if (!in_array($type, ['media', 'file'])) {
       throw new \InvalidArgumentException("Unrecognized type '$type'.");
     }
     if ($query->hasTag('islandora_hierarchical_access_subquery')) {
@@ -64,13 +64,9 @@ class QueryTagger implements ContainerInjectionInterface {
 
     static::conjunctionQuery($query);
 
-    /** @var \Drupal\Core\Entity\Sql\SqlEntityStorageInterface $storage */
-    $storage = $this->entityTypeManager->getStorage($type);
-    $tables = $storage->getTableMapping()->getTableNames();
-
     $tagged_table_aliases = $query->getMetaData('islandora_hierarchical_access_tagged_table_aliases') ?? [];
 
-    $target_aliases = static::getTaggingTargets($query, $tagged_table_aliases, $tables, $type);
+    $target_aliases = $this->getTaggingTargets($query, $tagged_table_aliases, $type);
 
     if (empty($target_aliases)) {
       return;

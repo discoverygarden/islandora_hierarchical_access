@@ -3,10 +3,38 @@
 namespace Drupal\islandora_hierarchical_access;
 
 use Drupal\Core\Database\Query\SelectInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 
+/**
+ * Helper trait; acquire new target aliases from queries.
+ */
 trait TaggedTargetsTrait {
 
-  protected static function getTaggingTargets(SelectInterface $query, array &$tagged_table_aliases, array $tables, string $type) : array {
+  /**
+   * The entity type manager service.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * Helper; identify (new) target table aliases to target.
+   *
+   * @param \Drupal\Core\Database\Query\SelectInterface $query
+   *   The query in which to operate.
+   * @param array $tagged_table_aliases
+   *   A reference to an array of existing aliases.
+   * @param string $type
+   *   The type of entity with which we are dealing.
+   *
+   * @return string[]
+   *   New aliases to which to attach filtering.
+   */
+  protected function getTaggingTargets(SelectInterface $query, array &$tagged_table_aliases, string $type) : array {
+    /** @var \Drupal\Core\Entity\Sql\SqlEntityStorageInterface $storage */
+    $storage = $this->entityTypeManager->getStorage($type);
+    $tables = $storage->getTableMapping()->getTableNames();
+
     $target_aliases = [];
 
     foreach ($query->getTables() as $info) {

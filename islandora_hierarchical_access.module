@@ -7,12 +7,12 @@
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Sql\SqlEntityStorageInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\islandora_hierarchical_access\EntityAccessHandler;
 use Drupal\islandora_hierarchical_access\EntityCUDHandler;
-use Drupal\Core\Database\Query\AlterableInterface;
 
 /**
  * Implements hook_entity_type_alter().
