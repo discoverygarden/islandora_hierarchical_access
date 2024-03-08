@@ -85,10 +85,11 @@ class LUTGenerator implements LUTGeneratorInterface {
         "%alias.entity_id = {$media_alias}.mid");
       $aliases[] = "{$field_alias}.{$field}_target_id";
     }
-    $file_alias = $query->leftJoin('file_managed', 'fm',
-      implode(' OR ', array_map(function ($field_alias) {
-        return "%alias.fid = $field_alias";
-      }, $aliases)));
+    $file_alias = $query->leftJoin('file_managed', 'fm', strtr('!field IN (!targets)', [
+      '!field' => '%alias.fid',
+      '!targets' => implode(', ', $aliases),
+    ]));
+
     $query->fields('n', ['nid'])
       ->fields($media_alias, ['mid']);
 
