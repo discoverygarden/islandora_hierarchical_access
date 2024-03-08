@@ -135,6 +135,9 @@ class LUTGenerator implements LUTGeneratorInterface {
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   protected function getFileFields() : iterable {
+    // XXX: Ideally, we could limit the fields returned to those of media types
+    // which have Islandora's "media of" field; however, unsure how to assert
+    // the existence of such a field at the moment.
     /** @var \Drupal\media\MediaTypeInterface[] $types */
     $types = $this->entityTypeManager->getStorage('media_type')->loadMultiple();
     foreach ($types as $type) {
