@@ -7,6 +7,7 @@ use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\islandora\IslandoraUtils;
+use Drupal\media\MediaInterface;
 
 /**
  * Lookup table generator service implementation.
@@ -63,6 +64,7 @@ class LUTGenerator implements LUTGeneratorInterface {
       "%alias.mid = {$fmo_alias}.entity_id");
 
     if ($entity) {
+      assert($entity instanceof MediaInterface);
       $query->condition("{$media_alias}.mid", $entity->id());
     }
 
