@@ -130,7 +130,15 @@ class QueryTagger implements ContainerInjectionInterface {
     ]));
 
     $this->eventDispatcher->dispatch(new Event($type, $query));
-    return;
+
+    // We need to allow arbitrary altered queries for parent entities to affect
+    // results; otherwise, there could be entities that are not visible via
+    // other non-IHA mechanisms that leak things.
+    // Where possible, we should prefer to use the event-based alteration to
+    // make adjustments instead of altering the entity-specific queries
+    // directly. Theoretically, we could implement queries to be IHA-aware, to
+    // make use of the event-handler when it is available but otherwise add its
+    // constraints directly to the entity query?
     $parents = [
       'file' => 'media',
       'media' => 'node',
@@ -141,14 +149,21 @@ class QueryTagger implements ContainerInjectionInterface {
       $parent_key = substr($parent, 0, 1) . 'id';
       $entity_select = $this->database->select($parent, $parent_alias);
       $entity_select->addExpression(1, "{$parent}_existence");
+      $entity_select->addMetaData('islandora_hierarchical_access_subquery_type', $parent);
+      $entity_select->addMetaData('islandora_hierarchical_access_subquery_alias', $parent_alias);
       $entity_select->addTag('islandora_hierarchical_access_subquery')
         ->addTag("{$parent}_access")
         ->addMetaData('base_table', $parent)
-        ->where("lut.{$parent_lut_column} = {$parent_alias}.{$parent_key}");
+        ->where("{$lut_exist_alias}.{$parent_lut_column} = {$parent_alias}.{$parent_key}");
 
+      $before = "{$entity_select}";
       $this->moduleHandler->alter("query_{$parent}_access", $entity_select);
-
-      $existence->exists($entity_select);
+      if ($before !== "{$entity_select}") {
+        // If the query was altered, let us apply its effects;
+        // otherwise, the base query makes no assertion for which we have not
+        // already accounted above.
+        $existence_condition->exists($entity_select);
+      }
       $this->eventDispatcher->dispatch(new Event($parent, $query));
     }
   }
