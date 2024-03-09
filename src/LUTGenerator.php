@@ -3,9 +3,11 @@
 namespace Drupal\islandora_hierarchical_access;
 
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\islandora\IslandoraUtils;
+use Drupal\media\MediaTypeInterface;
 
 /**
  * Lookup table generator service implementation.
@@ -13,42 +15,28 @@ use Drupal\islandora\IslandoraUtils;
 class LUTGenerator implements LUTGeneratorInterface {
 
   /**
-   * The database service.
-   *
-   * @var \Drupal\Core\Database\Connection
-   */
-  protected Connection $database;
-
-  /**
-   * The entity type manager service.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected EntityTypeManagerInterface $entityTypeManager;
-
-  /**
    * Memoize the list of fields to be considered.
    *
-   * @var string[]|null
+   * @var string[]
    */
-  protected ?array $uniqueFileFields = NULL;
+  protected array $uniqueFileFields;
 
   /**
    * Constructor.
    */
   public function __construct(
-    Connection $database,
-    EntityTypeManagerInterface $entityTypeManager
+    protected Connection $database,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected EntityFieldManagerInterface $entityFieldManager,
   ) {
-    $this->database = $database;
-    $this->entityTypeManager = $entityTypeManager;
+    // No-op, other than stashing services.
   }
 
   /**
    * {@inheritDoc}
    */
   public function regenerate(): void {
-    $tx = $this->database->startTransaction();
+    $tx = $this->database->startTransaction('lut_regeneration');
     try {
       $this->database->truncate(static::TABLE_NAME)->execute();
       $this->generate();
@@ -111,7 +99,7 @@ class LUTGenerator implements LUTGeneratorInterface {
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   protected function uniqueFileFields(): array {
-    if ($this->uniqueFileFields === NULL) {
+    if (!isset($this->uniqueFileFields)) {
       $this->uniqueFileFields = [];
       foreach ($this->getFileFields() as $field) {
         $name = $field->getName();
@@ -135,12 +123,14 @@ class LUTGenerator implements LUTGeneratorInterface {
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   protected function getFileFields() : iterable {
-    // XXX: Ideally, we could limit the fields returned to those of media types
-    // which have Islandora's "media of" field; however, unsure how to assert
-    // the existence of such a field at the moment.
     /** @var \Drupal\media\MediaTypeInterface[] $types */
     $types = $this->entityTypeManager->getStorage('media_type')->loadMultiple();
+
     foreach ($types as $type) {
+      $fields = $this->entityFieldManager->getFieldDefinitions('media', $type->id());
+      if (!isset($fields[IslandoraUtils::MEDIA_OF_FIELD])) {
+        continue;
+      }
       $field = $type->getSource()->getSourceFieldDefinition($type);
       $item_def = $field->getItemDefinition();
       if ($item_def->getSetting('handler') == 'default:file') {
