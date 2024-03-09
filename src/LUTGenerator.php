@@ -7,7 +7,6 @@ use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\islandora\IslandoraUtils;
-use Drupal\media\MediaTypeInterface;
 
 /**
  * Lookup table generator service implementation.
