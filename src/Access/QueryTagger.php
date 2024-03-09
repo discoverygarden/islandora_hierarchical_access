@@ -82,6 +82,7 @@ class QueryTagger implements ContainerInjectionInterface {
       $null_query->addExpression(1, 'lut_null_existance');
       $null_query->condition($null_condition = $null_query->orConditionGroup());
       $query->addMetaData('islandora_hierarchical_access_tagged_null_alias', $lut_null_alias);
+      $query->addMetaData('islandora_hierarchical_access_tagged_null_query', $null_query);
 
       // Test that where we _are_ making assertions, things are left in the LUT.
       $existence = $this->database->select(LUTGeneratorInterface::TABLE_NAME, $lut_exist_alias);
@@ -95,14 +96,9 @@ class QueryTagger implements ContainerInjectionInterface {
       $query
         ->addMetaData('islandora_hierarchical_access_tagged_null_condition', $null_condition)
         ->addMetaData('islandora_hierarchical_access_tagged_existence_condition', $existence_condition);
-
-      $query->condition(
-        $query->orConditionGroup()
-          ->notExists($null_query)
-          ->exists($existence)
-      );
     }
     else {
+      $null_query = $query->getMetaData('islandora_hierarchical_access_tagged_null_query');
       $null_condition = $query->getMetaData('islandora_hierarchical_access_tagged_null_condition');
       $existence_condition = $query->getMetaData('islandora_hierarchical_access_tagged_existence_condition');
     }
@@ -128,6 +124,8 @@ class QueryTagger implements ContainerInjectionInterface {
     $existence_condition->where(strtr('!field IN (!targets)', $replacements + [
       '!field' => "{$lut_exist_alias}.{$lut_column}",
     ]));
+
+    $before_tagging = clone $existence;
 
     $this->eventDispatcher->dispatch(new Event($type, $query));
 
@@ -156,15 +154,25 @@ class QueryTagger implements ContainerInjectionInterface {
         ->addMetaData('base_table', $parent)
         ->where("{$lut_exist_alias}.{$parent_lut_column} = {$parent_alias}.{$parent_key}");
 
-      $before = "{$entity_select}";
+      $before_subquery = clone $entity_select;
       $this->moduleHandler->alter("query_{$parent}_access", $entity_select);
-      if ($before !== "{$entity_select}") {
+      if ("{$before_subquery}" !== "{$entity_select}") {
         // If the query was altered, let us apply its effects;
         // otherwise, the base query makes no assertion for which we have not
         // already accounted above.
         $existence_condition->exists($entity_select);
       }
       $this->eventDispatcher->dispatch(new Event($parent, $query));
+    }
+
+    // If there is no change, then we do not need to add any additional
+    // conditions.
+    if ("{$before_tagging}" !== "{$existence}") {
+      $query->condition(
+        $query->orConditionGroup()
+          ->notExists($null_query)
+          ->exists($existence)
+      );
     }
   }
 
