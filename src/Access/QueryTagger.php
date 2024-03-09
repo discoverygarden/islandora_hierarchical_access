@@ -75,40 +75,34 @@ class QueryTagger implements ContainerInjectionInterface {
     $query->addMetaData('islandora_hierarchical_access_tagged_table_aliases', $tagged_table_aliases);
     $existence = $query->getMetaData('islandora_hierarchical_access_tagged_existence_query');
 
+    $lut_null_alias = 'lut_null';
+    $lut_exist_alias = 'lut_exist';
     if (!$existence) {
+      $null_query = $this->database->select(LUTGeneratorInterface::TABLE_NAME, $lut_null_alias);
+      $null_query->addExpression(1, 'lut_null_existance');
+      $null_query->condition($null_condition = $null_query->orConditionGroup());
+      $query->addMetaData('islandora_hierarchical_access_tagged_null_alias', $lut_null_alias);
+
       // Test that where we _are_ making assertions, things are left in the LUT.
-      $existence = $this->database->select(match ($type) {
-        'file' => 'file_managed',
-        default => $type,
-      }, "base_{$type}");
+      $existence = $this->database->select(LUTGeneratorInterface::TABLE_NAME, $lut_exist_alias);
       $existence->addExpression('1', 'lut_existence');
-      $key = substr($type, 0, 1) . 'id';
-      $lut_alias = $existence->leftJoin(LUTGeneratorInterface::TABLE_NAME, 'lut', "%alias.{$key} = base_{$type}.{$key}");
-      $existence->addMetaData('islandora_hierarchical_access_tagged_lut_alias', $lut_alias);
+      $query->addMetaData('islandora_hierarchical_access_tagged_existence_alias', $lut_exist_alias);
+
       $query->addMetaData('islandora_hierarchical_access_tagged_existence_query', $existence);
 
-      $base_condition = $existence->andConditionGroup();
-      $null_condition = $existence->andConditionGroup();
-      $existence_condition = $existence->andConditionGroup();
+      $existence->condition($existence_condition = $existence->andConditionGroup());
 
-      $existence
-        ->addMetaData('islandora_hierarchical_access_tagged_base_condition', $base_condition)
+      $query
         ->addMetaData('islandora_hierarchical_access_tagged_null_condition', $null_condition)
         ->addMetaData('islandora_hierarchical_access_tagged_existence_condition', $existence_condition);
 
-      $existence->condition($base_condition)
-        ->condition($existence->orConditionGroup()
-          // Test for non-existence in the LUT.
-          ->condition($null_condition)
-          // Or valid entries remaining from the LUT.
-          ->condition($existence_condition)
-        );
-
-      $query->exists($existence);
+      $query->condition(
+        $query->orConditionGroup()
+          ->notExists($null_query)
+          ->exists($existence)
+      );
     }
     else {
-      $lut_alias = $query->getMetaData('islandora_hierarchical_access_tagged_lut_alias');
-      $base_condition = $query->getMetaData('islandora_hierarchical_access_tagged_base_condition');
       $null_condition = $query->getMetaData('islandora_hierarchical_access_tagged_null_condition');
       $existence_condition = $query->getMetaData('islandora_hierarchical_access_tagged_existence_condition');
     }
@@ -123,16 +117,20 @@ class QueryTagger implements ContainerInjectionInterface {
 
     $lut_column = $get_lut_column($type);
     $replacements = [
-      '!base_field' => "base_{$type}.{$lut_column}",
-      '!field' => "{$lut_alias}.{$lut_column}",
       '!targets' => implode(', ', $target_aliases),
     ];
 
-    $base_condition->where(strtr('!base_field IN (!targets)', $replacements));
-    $null_condition->where(strtr('!field IS NULL', $replacements));
-    $existence_condition->where(strtr('!field IN (!targets)', $replacements));
+    // Not in LUT.
+    $null_condition->where(strtr('!field IN (!targets)', $replacements + [
+      '!field' => "{$lut_null_alias}.{$lut_column}",
+    ]));
+    // In LUT.
+    $existence_condition->where(strtr('!field IN (!targets)', $replacements + [
+      '!field' => "{$lut_exist_alias}.{$lut_column}",
+    ]));
 
     $this->eventDispatcher->dispatch(new Event($type, $query));
+    return;
     $parents = [
       'file' => 'media',
       'media' => 'node',
@@ -150,7 +148,7 @@ class QueryTagger implements ContainerInjectionInterface {
 
       $this->moduleHandler->alter("query_{$parent}_access", $entity_select);
 
-      $existence_condition->exists($entity_select);
+      $existence->exists($entity_select);
       $this->eventDispatcher->dispatch(new Event($parent, $query));
     }
   }
