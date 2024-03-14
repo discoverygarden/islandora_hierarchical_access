@@ -6,8 +6,8 @@ use Consolidation\AnnotatedCommand\CommandResult;
 use Consolidation\AnnotatedCommand\ExitCodeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drush\Commands\DrushCommands;
 use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
+use Drush\Commands\DrushCommands;
 
 /**
  * Hierarchical access drush commands.

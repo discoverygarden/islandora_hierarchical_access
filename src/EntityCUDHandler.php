@@ -142,7 +142,14 @@ class EntityCUDHandler implements EntityCUDHandlerInterface, AttachableEntityHan
    *   The entity for which we are responding.
    */
   protected function doCreate(EntityInterface $entity) : void {
-    $this->generator->generate($entity);
+    $transaction = $this->database->startTransaction('lut_create');
+    try {
+      $this->generator->generate($entity);
+    }
+    catch (\Exception $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
   }
 
   /**
@@ -152,9 +159,16 @@ class EntityCUDHandler implements EntityCUDHandlerInterface, AttachableEntityHan
    *   The entity for which we are responding.
    */
   protected function doDelete(EntityInterface $entity): void {
-    $this->database->delete(LUTGeneratorInterface::TABLE_NAME)
-      ->condition($this->column, $entity->id())
-      ->execute();
+    $transaction = $this->database->startTransaction('lut_delete');
+    try {
+      $this->database->delete(LUTGeneratorInterface::TABLE_NAME)
+        ->condition($this->column, $entity->id())
+        ->execute();
+    }
+    catch (\Exception $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
   }
 
   /**
@@ -164,8 +178,15 @@ class EntityCUDHandler implements EntityCUDHandlerInterface, AttachableEntityHan
    *   The entity for which we are responding.
    */
   protected function doUpdate(EntityInterface $entity) : void {
-    $this->doDelete($entity);
-    $this->doCreate($entity);
+    $transaction = $this->database->startTransaction('lut_update');
+    try {
+      $this->doDelete($entity);
+      $this->doCreate($entity);
+    }
+    catch (\Exception $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
   }
 
 }

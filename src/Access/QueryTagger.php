@@ -4,280 +4,176 @@ namespace Drupal\islandora_hierarchical_access\Access;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\SelectInterface;
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\islandora_hierarchical_access\Event\Event;
 use Drupal\islandora_hierarchical_access\LUTGeneratorInterface;
+use Drupal\islandora_hierarchical_access\TaggedTargetsTrait;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Query tagging to propagate our access control model.
  */
-class QueryTagger {
+class QueryTagger implements ContainerInjectionInterface {
 
   use QueryConjunctionTrait;
-
-  /**
-   * The database connection service.
-   *
-   * @var \Drupal\Core\Database\Connection
-   */
-  protected Connection $database;
-
-  /**
-   * The module handler service.
-   *
-   * @var \Drupal\Core\Extension\ModuleHandlerInterface
-   */
-  protected ModuleHandlerInterface $moduleHandler;
-
-  /**
-   * The entity type manager service.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected EntityTypeManagerInterface $entityTypeManager;
-
-  /**
-   * Memoization for generated base media query.
-   *
-   * @var \Drupal\Core\Database\Query\SelectInterface|null
-   */
-  protected ?SelectInterface $baseMediaQuery = NULL;
-
-  /**
-   * Memoization for generated tagged media query.
-   *
-   * @var \Drupal\Core\Database\Query\SelectInterface|null
-   */
-  protected ?SelectInterface $taggedMediaQuery = NULL;
-
-  /**
-   * Memoization for the base node query.
-   *
-   * @var \Drupal\Core\Database\Query\SelectInterface|null
-   */
-  protected ?SelectInterface $baseNodeQuery = NULL;
-
-  /**
-   * Memoization for the tagged node query.
-   *
-   * @var \Drupal\Core\Database\Query\SelectInterface|null
-   */
-  protected ?SelectInterface $taggedNodeQuery = NULL;
+  use TaggedTargetsTrait;
 
   /**
    * Constructor.
-   *
-   * @param \Drupal\Core\Database\Connection $database
-   *   Database connection instance.
-   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
-   *   Module handler interface.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
-   *   Entity type manager interface.
    */
   public function __construct(
-    Connection $database,
-    ModuleHandlerInterface $module_handler,
-    EntityTypeManagerInterface $entity_type_manager
+    protected Connection $database,
+    protected ModuleHandlerInterface $moduleHandler,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected EventDispatcherInterface $eventDispatcher,
   ) {
-    $this->database = $database;
-    $this->moduleHandler = $module_handler;
-    $this->entityTypeManager = $entity_type_manager;
+    // No-op, other than stashing the passed services.
   }
 
   /**
-   * Tag file_access queries.
+   * {@inheritDoc}
+   */
+  public static function create(ContainerInterface $container) : self {
+    return new static(
+      $container->get('database'),
+      $container->get('module_handler'),
+      $container->get('entity_type.manager'),
+      $container->get('event_dispatcher'),
+    );
+  }
+
+  /**
+   * Apply hierarchical access logic to the query.
    *
    * @param \Drupal\Core\Database\Query\SelectInterface $query
-   *   The query to be tagged.
+   *   The query to be altered.
    */
-  public function tagFile(SelectInterface $query) : void {
-    if ("{$this->getBaseMediaQuery()}" === "{$this->getTaggedMediaQuery()}") {
-      // No relevant tagging for which to account.
+  public function tagQuery(SelectInterface $query) : void {
+    $type = $query->getMetaData('islandora_hierarchical_access_tag_type');
+    if (!in_array($type, ['media', 'file'])) {
+      throw new \InvalidArgumentException("Unrecognized type '$type'.");
+    }
+    if ($query->hasTag('islandora_hierarchical_access_subquery')) {
+      // Avoid further altering when it should already be accounted for
+      // internally.
       return;
     }
 
     static::conjunctionQuery($query);
 
-    $file_tables = $this->entityTypeManager->getStorage('file')
-      ->getTableMapping()
-      ->getTableNames();
+    $tagged_table_aliases = $query->getMetaData('islandora_hierarchical_access_tagged_table_aliases') ?? [];
 
-    $existential_query = $query->andConditionGroup();
-    $new_or = $query->orConditionGroup();
+    $target_aliases = $this->getTaggingTargets($query, $tagged_table_aliases, $type);
 
-    foreach ($query->getTables() as $info) {
-      if ($info['table'] instanceof SelectInterface) {
-        continue;
-      }
-      elseif (in_array($info['table'], $file_tables)) {
-        $alias = $info['alias'];
-
-        // If this file is _not_ an eligible (media-related) file, then we
-        // should not mess with its access; otherwise...
-        $existential_query->condition("$alias.fid", $this->getBaseMediaQuery(),
-          'NOT IN');
-
-        // ... so if it is still in the set of allowed things with tagging,
-        // then we should be fine to allow access.
-        $new_or->condition("$alias.fid", $this->getTaggedMediaQuery(), 'IN');
-      }
-    }
-    $new_or->condition($existential_query);
-
-    $query->condition($new_or);
-  }
-
-  /**
-   * Get the base media query.
-   *
-   * @return \Drupal\Core\Database\Query\SelectInterface
-   *   The base media query.
-   */
-  protected function getBaseMediaQuery(): SelectInterface {
-    if ($this->baseMediaQuery === NULL) {
-      $this->baseMediaQuery = $this->getMediaQuery(FALSE);
-    }
-
-    return $this->baseMediaQuery;
-  }
-
-  /**
-   * Build out the media query.
-   *
-   * @param bool $tagged
-   *   TRUE if the base table should be tagged for access control; otherwise,
-   *   FALSE.
-   *
-   * @return \Drupal\Core\Database\Query\SelectInterface
-   *   The media query.
-   */
-  protected function getMediaQuery($tagged = FALSE): SelectInterface {
-    $query = $this->database->select('media', 'm')
-      ->addTag('media_access')
-      ->addMetaData('base_table', 'media');
-
-    if ($tagged) {
-      // Apply tagging to _just_ the base table, that we will then join against
-      // all of the fields.
-      $this->moduleHandler->alter('query_media_access', $query);
-    }
-
-    $lut_alias = $query->join(LUTGeneratorInterface::TABLE_NAME, 'lut',
-      '%alias.mid = m.mid');
-    $query->fields($lut_alias, ['fid']);
-
-    return $query;
-  }
-
-  /**
-   * Get the tagged media query.
-   *
-   * @return \Drupal\Core\Database\Query\SelectInterface
-   *   The tagged media query.
-   */
-  protected function getTaggedMediaQuery(): SelectInterface {
-    if ($this->taggedMediaQuery === NULL) {
-      $this->taggedMediaQuery = $this->getMediaQuery(TRUE);
-    }
-
-    return $this->taggedMediaQuery;
-  }
-
-  /**
-   * Tag media_access queries.
-   *
-   * @param \Drupal\Core\Database\Query\SelectInterface $query
-   *   The query to be tagged.
-   */
-  public function tagMedia(SelectInterface $query) : void {
-    if ("{$this->getBaseNodeQuery()}" === "{$this->getTaggedNodeQuery()}") {
-      // No relevant tagging for which to account.
+    if (empty($target_aliases)) {
       return;
     }
 
-    static::conjunctionQuery($query);
+    $query->addMetaData('islandora_hierarchical_access_tagged_table_aliases', $tagged_table_aliases);
+    $existence = $query->getMetaData('islandora_hierarchical_access_tagged_existence_query');
 
-    $media_tables = $this->entityTypeManager->getStorage('media')
-      ->getTableMapping()
-      ->getTableNames();
+    $lut_null_alias = 'lut_null';
+    $lut_exist_alias = 'lut_exist';
+    if (!$existence) {
+      $null_query = $this->database->select(LUTGeneratorInterface::TABLE_NAME, $lut_null_alias);
+      $null_query->addExpression(1, 'lut_null_existance');
+      $null_query->condition($null_condition = $null_query->orConditionGroup());
+      $query->addMetaData('islandora_hierarchical_access_tagged_null_alias', $lut_null_alias);
+      $query->addMetaData('islandora_hierarchical_access_tagged_null_query', $null_query);
 
-    $new_or = $query->orConditionGroup();
+      // Test that where we _are_ making assertions, things are left in the LUT.
+      $existence = $this->database->select(LUTGeneratorInterface::TABLE_NAME, $lut_exist_alias);
+      $existence->addExpression('1', 'lut_existence');
+      $query->addMetaData('islandora_hierarchical_access_tagged_existence_alias', $lut_exist_alias);
 
-    foreach ($query->getTables() as $info) {
-      if ($info['table'] instanceof SelectInterface) {
-        continue;
+      $query->addMetaData('islandora_hierarchical_access_tagged_existence_query', $existence);
+
+      $existence->condition($existence_condition = $existence->andConditionGroup());
+
+      $query
+        ->addMetaData('islandora_hierarchical_access_tagged_null_condition', $null_condition)
+        ->addMetaData('islandora_hierarchical_access_tagged_existence_condition', $existence_condition);
+    }
+    else {
+      $null_query = $query->getMetaData('islandora_hierarchical_access_tagged_null_query');
+      $null_condition = $query->getMetaData('islandora_hierarchical_access_tagged_null_condition');
+      $existence_condition = $query->getMetaData('islandora_hierarchical_access_tagged_existence_condition');
+    }
+
+    $get_lut_column = function (string $type) : string {
+      return match ($type) {
+        'file' => 'fid',
+        'media' => 'mid',
+        'node' => 'nid',
+      };
+    };
+
+    $lut_column = $get_lut_column($type);
+    $replacements = [
+      '!targets' => implode(', ', $target_aliases),
+    ];
+
+    // Not in LUT.
+    $null_condition->where(strtr('!field IN (!targets)', $replacements + [
+      '!field' => "{$lut_null_alias}.{$lut_column}",
+    ]));
+    // In LUT.
+    $existence_condition->where(strtr('!field IN (!targets)', $replacements + [
+      '!field' => "{$lut_exist_alias}.{$lut_column}",
+    ]));
+
+    $before_tagging = clone $existence;
+
+    $this->eventDispatcher->dispatch(new Event($type, $query));
+
+    // We need to allow arbitrary altered queries for parent entities to affect
+    // results; otherwise, there could be entities that are not visible via
+    // other non-IHA mechanisms that leak things.
+    // Where possible, we should prefer to use the event-based alteration to
+    // make adjustments instead of altering the entity-specific queries
+    // directly. Theoretically, we could implement queries to be IHA-aware, to
+    // make use of the event-handler when it is available but otherwise add its
+    // constraints directly to the entity query?
+    $parents = [
+      'file' => 'media',
+      'media' => 'node',
+    ];
+    while ($parent = ($parents[$parent ?? $type] ?? NULL)) {
+      $parent_lut_column = $get_lut_column($parent);
+      $parent_alias = "base_{$parent}";
+      $parent_key = substr($parent, 0, 1) . 'id';
+      $entity_select = $this->database->select($parent, $parent_alias);
+      $entity_select->addExpression(1, "{$parent}_existence");
+      $entity_select->addMetaData('islandora_hierarchical_access_subquery_type', $parent);
+      $entity_select->addMetaData('islandora_hierarchical_access_subquery_alias', $parent_alias);
+      $entity_select->addTag('islandora_hierarchical_access_subquery')
+        ->addTag("{$parent}_access")
+        ->addMetaData('base_table', $parent)
+        ->where("{$lut_exist_alias}.{$parent_lut_column} = {$parent_alias}.{$parent_key}");
+
+      $before_subquery = clone $entity_select;
+      $this->moduleHandler->alter("query_{$parent}_access", $entity_select);
+      if ("{$before_subquery}" !== "{$entity_select}") {
+        // If the query was altered, let us apply its effects;
+        // otherwise, the base query makes no assertion for which we have not
+        // already accounted above.
+        $existence_condition->exists($entity_select);
       }
-      elseif (in_array($info['table'], $media_tables)) {
-        $key = (strpos($info['table'], 'media__') === 0) ? 'entity_id' : 'mid';
-        $alias = $info['alias'];
-
-        // If this media is _not_ an eligible (node-related) media, then we
-        // should not mess with its access; otherwise...
-        $new_or->condition("$alias.$key", $this->getBaseNodeQuery(), 'NOT IN');
-
-        // ... if it is still in the set of allowed things with tagging, then
-        // we should be fine to allow access.
-        $new_or->condition("$alias.$key", $this->getTaggedNodeQuery(), 'IN');
-      }
+      $this->eventDispatcher->dispatch(new Event($parent, $query));
     }
 
-    $query->condition($new_or);
-  }
-
-  /**
-   * Get the base node query.
-   *
-   * @return \Drupal\Core\Database\Query\SelectInterface
-   *   The base node query.
-   */
-  protected function getBaseNodeQuery(): SelectInterface {
-    if ($this->baseNodeQuery === NULL) {
-      $this->baseNodeQuery = $this->getNodeQuery();
+    // If there is no change, then we do not need to add any additional
+    // conditions.
+    if ("{$before_tagging}" !== "{$existence}") {
+      $query->condition(
+        $query->orConditionGroup()
+          ->notExists($null_query)
+          ->exists($existence)
+      );
     }
-
-    return $this->baseNodeQuery;
-  }
-
-  /**
-   * Build out the node query.
-   *
-   * @param bool $tagged
-   *   TRUE if the base table should be tagged for access control; otherwise,
-   *   FALSE.
-   *
-   * @return \Drupal\Core\Database\Query\SelectInterface
-   *   The node query.
-   */
-  protected function getNodeQuery($tagged = FALSE): SelectInterface {
-    $query = $this->database->select('node', 'n')
-      ->addTag('node_access')
-      ->addMetaData('base_table', 'node');
-
-    if ($tagged) {
-      // Apply tagging to _just_ the base table, that we will then join against
-      // all of the fields.
-      $this->moduleHandler->alter('query_node_access', $query);
-    }
-
-    $lut_alias = $query->join(LUTGeneratorInterface::TABLE_NAME, 'lut',
-      '%alias.nid = n.nid');
-    $query->fields($lut_alias, ['mid']);
-
-    return $query;
-  }
-
-  /**
-   * Get the tagged node query.
-   *
-   * @return \Drupal\Core\Database\Query\SelectInterface
-   *   The tagged node query.
-   */
-  protected function getTaggedNodeQuery(): SelectInterface {
-    if ($this->taggedNodeQuery === NULL) {
-      $this->taggedNodeQuery = $this->getNodeQuery(TRUE);
-    }
-
-    return $this->taggedNodeQuery;
   }
 
 }
