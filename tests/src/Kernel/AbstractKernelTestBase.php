@@ -11,7 +11,7 @@ use Drupal\media\MediaInterface;
 use Drupal\media\MediaTypeInterface;
 use Drupal\node\NodeInterface;
 use Drupal\node\NodeTypeInterface;
-use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
+use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\test_support\Traits\Support\InteractsWithEntities;
@@ -20,7 +20,7 @@ use Drupal\Tests\test_support\Traits\Support\InteractsWithEntities;
  * Abstract kernel test base for LUT and access control testing.
  */
 abstract class AbstractKernelTestBase extends KernelTestBase {
-  use EntityReferenceTestTrait;
+  use EntityReferenceFieldCreationTrait;
   use ContentTypeCreationTrait;
   use MediaTypeCreationTrait;
   use InteractsWithEntities;
