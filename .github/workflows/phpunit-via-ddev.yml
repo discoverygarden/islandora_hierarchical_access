@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  PHPUnit:
+  PHPUnit-ddev:
     strategy:
       matrix:
         drupal-version:
