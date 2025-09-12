@@ -1,0 +1,51 @@
+---
+name: PHPUnit Tests, via ddev
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  PHPUnit:
+    strategy:
+      matrix:
+        drupal-version:
+          - '^10.2'
+#          - '^10.3'
+        php-version:
+          - '8.3'
+#          - '8.4'
+        experimental:
+          - false
+        database:
+          - postgres:12
+#        include:
+#          - drupal-version: '^11'
+#            php-version: '8.4'
+#            experimental: true
+#            database: postgres:16
+    name: Drupal ${{ matrix.drupal-version }} | PHP ${{ matrix.php-version }} | DB ${{ matrix.database }}
+    continue-on-error: ${{ matrix.experimental }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Setup DDEV
+        uses: ddev/github-action-setup-ddev@v1
+
+      - name: Project setup
+        run: |
+          set -e
+          ddev config --project-type=drupal --docroot=web --php-version=${{ matrix.php-version }} --corepack-enable --database ${{ matrix.database }}
+          ddev add-on get ddev/ddev-drupal-contrib
+          ddev start
+          ddev core-version ${{ matrix.drupal-version }}
+          ddev poser
+          ddev symlink-project
+          ddev config --update
+          ddev restart
+
+      - name: Run tests
+        run: |
+          set -e
+          ddev phpunit
