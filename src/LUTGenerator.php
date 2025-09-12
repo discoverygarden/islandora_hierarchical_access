@@ -50,7 +50,7 @@ class LUTGenerator implements LUTGeneratorInterface {
   /**
    * {@inheritDoc}
    */
-  public function generate(EntityInterface $entity = NULL): void {
+  public function generate(?EntityInterface $entity = NULL): void {
     if (count($this->uniqueFileFields()) === 0) {
       // Did not find any fields over which to generate the LUT so abort the
       // attempt.

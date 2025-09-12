@@ -82,7 +82,7 @@ class EntityCUDHandler implements EntityCUDHandlerInterface, AttachableEntityHan
     Connection $database,
     LUTGeneratorInterface $generator,
     $column,
-    $operations
+    $operations,
   ) {
     $this->database = $database;
     $this->generator = $generator;

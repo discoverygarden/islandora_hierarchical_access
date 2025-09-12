@@ -77,7 +77,7 @@ function islandora_hierarchical_access_entity_delete(EntityInterface $entity) : 
 function islandora_hierarchical_access_entity_access(
   EntityInterface $entity,
   $operation,
-  AccountInterface $account
+  AccountInterface $account,
 ) : AccessResultInterface {
   /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
   $entity_type_manager = \Drupal::service('entity_type.manager');
