@@ -7,6 +7,7 @@ use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Access\AccessResultReasonInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -139,6 +140,9 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
   public function check(EntityInterface $entity, string $operation, AccountInterface $account) : AccessResultInterface {
     if (!in_array($operation, $this->ops, TRUE)) {
       return AccessResult::neutral("Irrelevant operation.");
+    }
+    if ($entity instanceof EntityPublishedInterface && !$entity->isPublished()) {
+      return AccessResult::neutral("Hierarchical access is only concerned with published content.");
     }
 
     return $this->doCheck($entity, $operation, $account);
