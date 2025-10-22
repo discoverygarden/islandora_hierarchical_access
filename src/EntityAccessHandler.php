@@ -107,7 +107,7 @@ class EntityAccessHandler implements EntityAccessHandlerInterface, AttachableEnt
     EntityStorageInterface $storage,
     $column,
     $target_column,
-    array $op_map
+    array $op_map,
   ) {
     $this->database = $database;
     $this->ops = $ops;

@@ -35,7 +35,7 @@ class IslandoraHierarchicalAccessCommands extends DrushCommands {
    */
   public function __construct(
     LUTGeneratorInterface $lut_generator,
-    EntityTypeManagerInterface $entityTypeManager
+    EntityTypeManagerInterface $entityTypeManager,
   ) {
     parent::__construct();
     $this->lutGenerator = $lut_generator;
