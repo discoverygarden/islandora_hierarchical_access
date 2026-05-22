@@ -50,9 +50,12 @@ class QueryTagger implements ContainerInjectionInterface {
    *
    * @param \Drupal\Core\Database\Query\SelectInterface $query
    *   The query to be altered.
+   * @param string $type
+   *   The type of entity for which we are altering the query. Expecting one of:
+   *   - media; and,
+   *   - file.
    */
-  public function tagQuery(SelectInterface $query) : void {
-    $type = $query->getMetaData('islandora_hierarchical_access_tag_type');
+  public function tagQuery(SelectInterface $query, string $type) : void {
     if (!in_array($type, ['media', 'file'])) {
       throw new \InvalidArgumentException("Unrecognized type '$type'.");
     }
