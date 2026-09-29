@@ -6,7 +6,7 @@
         "drupal/islandora": "^2"
     },
     "require-dev": {
-        "drupal/test_support": "^1"
+        "discoverygarden/test_support": "^1"
     },
     "extra": {
         "drush": {
