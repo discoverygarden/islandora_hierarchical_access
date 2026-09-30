@@ -86,7 +86,7 @@ class HandlerAttachmentTest extends UnitTestCase {
    *   - the values to be set on the type, which might conceptually considered
    *     parameters to the handler.
    */
-  public function attachmentProvider() : array {
+  public static function attachmentProvider() : array {
     return [
       [
         EntityCUDHandler::class,
